@@ -10,7 +10,9 @@ async function setupDatabase() {
 	console.log("🔧 Setting up database...\n");
 	console.log(`Host: ${config.host}:${config.port}`);
 	console.log(`User: ${config.user}`);
-	console.log(`Database: ${config.dbName}\n`);
+	console.log(`Database: ${config.database}\n`);
+
+	const dbName = config.database;
 
 	// Connect to postgres database (default database)
 	const pool = new pg.Pool({
@@ -48,9 +50,9 @@ async function setupDatabase() {
 		console.log("║  🎉 Database setup completed!                  ║");
 		console.log("╠════════════════════════════════════════════════╣");
 		console.log("║  Next steps:                                   ║");
-		console.log("║  1. Run migrations: pnpm run db:migrate       ║");
-		console.log("║  2. Check status: pnpm run db:status          ║");
-		console.log("║  3. (Optional) Seed data: pnpm run db:seed    ║");
+		console.log("║  1. Run migrations: pnpm run db:migrate        ║");
+		console.log("║  2. Check status: pnpm run db:status           ║");
+		console.log("║  3. (Optional) Seed data: pnpm run db:seed     ║");
 		console.log("╚════════════════════════════════════════════════╝");
 	} catch (error) {
 		console.error("❌ Database setup failed:", error.message);
@@ -59,7 +61,9 @@ async function setupDatabase() {
 		console.error("2. Check your .env file for correct credentials");
 		console.error("3. Verify user has CREATE DATABASE permission");
 		console.error("\nTo grant permissions:");
-		console.error(`   psql -U postgres -c "ALTER USER ${user} CREATEDB;"`);
+		console.error(
+			`   psql -U postgres -c "ALTER USER ${config.user} CREATEDB;"`,
+		);
 		process.exit(1);
 	} finally {
 		await pool.end().catch(() => {});
