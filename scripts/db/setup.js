@@ -1,64 +1,48 @@
-import postgres from "postgres";
-import "dotenv/config";
+import pg from "pg";
+import { config } from "./config.js";
 
 /**
  * Database setup script
  * Creates the database if it doesn't exist
  */
 
-const host = process.env.DB_HOST || "localhost";
-const port = parseInt(process.env.DB_PORT || "5432");
-const user = process.env.DB_USER || "postgres";
-const password = process.env.DB_PASSWORD || "postgres";
-const dbName = process.env.DB_NAME || "jet-db";
-
 async function setupDatabase() {
 	console.log("🔧 Setting up database...\n");
-	console.log(`Host: ${host}:${port}`);
-	console.log(`User: ${user}`);
-	console.log(`Database: ${dbName}\n`);
+	console.log(`Host: ${config.host}:${config.port}`);
+	console.log(`User: ${config.user}`);
+	console.log(`Database: ${config.dbName}\n`);
 
 	// Connect to postgres database (default database)
-	const sql = postgres({
-		host,
-		port,
-		username: user,
-		password,
+	const pool = new pg.Pool({
+		...config,
 		database: "postgres", // Connect to default postgres database
 	});
 
 	try {
 		// Check if database exists
 		console.log(`1. Checking if database "${dbName}" exists...`);
-		const result = await sql`
-      SELECT 1 FROM pg_database WHERE datname = ${dbName}
-    `;
+		const result = await pool.query(
+			"SELECT 1 FROM pg_database WHERE datname = $1",
+			[dbName],
+		);
 
-		if (result.length > 0) {
+		if (result.rows.length > 0) {
 			console.log(`✅ Database "${dbName}" already exists\n`);
 		} else {
 			// Create database
 			console.log(`📦 Creating database "${dbName}"...`);
-			await sql.unsafe(`CREATE DATABASE ${dbName}`);
+			await pool.query(`CREATE DATABASE "${dbName}"`);
 			console.log(`✅ Database "${dbName}" created successfully\n`);
 		}
 
+		await pool.end();
+
 		// Test connection to new database
 		console.log("2. Testing connection to database...");
-		await sql.end();
-
-		const testSql = postgres({
-			host,
-			port,
-			username: user,
-			password,
-			database: dbName,
-		});
-
-		await testSql`SELECT 1`;
+		const testPool = new pg.Pool(config);
+		await testPool.query("SELECT 1");
 		console.log("✅ Connection test successful\n");
-
-		await testSql.end();
+		await testPool.end();
 
 		console.log("╔════════════════════════════════════════════════╗");
 		console.log("║  🎉 Database setup completed!                  ║");
@@ -78,7 +62,7 @@ async function setupDatabase() {
 		console.error(`   psql -U postgres -c "ALTER USER ${user} CREATEDB;"`);
 		process.exit(1);
 	} finally {
-		await sql.end();
+		await pool.end().catch(() => {});
 	}
 }
 

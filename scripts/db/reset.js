@@ -1,15 +1,7 @@
-import postgres from "postgres";
-import "dotenv/config";
+import pg from "pg";
+import { config } from "./config.js";
 
-const config = {
-	host: process.env.DB_HOST || "localhost",
-	port: parseInt(process.env.DB_PORT || "5432"),
-	username: process.env.DB_USER || "postgres",
-	password: process.env.DB_PASSWORD || "postgres",
-	database: process.env.DB_NAME || "jet-db",
-};
-
-const sql = postgres(config);
+const pool = new pg.Pool(config);
 
 async function resetDatabase() {
 	console.log("⚠️  WARNING: This will delete all data in the database!\n");
@@ -24,45 +16,43 @@ async function resetDatabase() {
 	try {
 		// Get all tables
 		console.log("1. Fetching all tables...");
-		const tables = await sql`
+		const tables = await pool.query(`
       SELECT tablename
       FROM pg_tables
       WHERE schemaname = 'public'
-    `;
+    `);
 
-		if (tables.length === 0) {
+		if (tables.rows.length === 0) {
 			console.log("ℹ️  No tables found to drop\n");
 		} else {
-			console.log(`Found ${tables.length} tables to drop\n`);
+			console.log(`Found ${tables.rows.length} tables to drop\n`);
 
 			// Drop all tables
 			console.log("2. Dropping all tables...");
-			for (const table of tables) {
-				await sql.unsafe(`DROP TABLE IF EXISTS "${table.tablename}" CASCADE`);
+			for (const table of tables.rows) {
+				await pool.query(`DROP TABLE IF EXISTS "${table.tablename}" CASCADE`);
 				console.log(`  ✅ Dropped ${table.tablename}`);
 			}
 		}
 
 		// Drop Drizzle migrations schema
 		console.log("\n3. Dropping Drizzle migrations...");
-		await sql.unsafe("DROP SCHEMA IF EXISTS drizzle CASCADE");
+		await pool.query("DROP SCHEMA IF EXISTS drizzle CASCADE");
 		console.log("  ✅ Dropped drizzle schema");
 
 		// Drop all custom types (enums)
 		console.log("\n4. Dropping custom types...");
-		const types = await sql`
+		const types = await pool.query(`
       SELECT typname
       FROM pg_type
       WHERE typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
       AND typtype = 'e'
-    `;
+    `);
 
-		for (const type of types) {
-			await sql.unsafe(`DROP TYPE IF EXISTS "${type.typname}" CASCADE`);
+		for (const type of types.rows) {
+			await pool.query(`DROP TYPE IF EXISTS "${type.typname}" CASCADE`);
 			console.log(`  ✅ Dropped type ${type.typname}`);
 		}
-
-		await sql.end();
 
 		console.log("\n╔════════════════════════════════════════════════╗");
 		console.log("║  ✅ Database reset completed!                  ║");
@@ -76,7 +66,7 @@ async function resetDatabase() {
 		console.error("Error details:", error);
 		process.exit(1);
 	} finally {
-		await sql.end();
+		await pool.end();
 	}
 }
 

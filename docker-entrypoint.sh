@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "Starting Flint ..."
+echo "Starting Jet ..."
 
 # Run database migrations
 echo "Running database migrations..."
