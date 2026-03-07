@@ -1,5 +1,29 @@
 import pg from "pg";
 import { config } from "./config.js";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function getExpectedTablesFromSnapshot() {
+	const metaDir = join(__dirname, "../../migrations/meta");
+
+	try {
+		const journal = JSON.parse(readFileSync(join(metaDir, "_journal.json"), "utf8"));
+		const last = journal.entries.at(-1);
+		if (!last) return [];
+
+		const snapshotPath = join(metaDir, `${last.tag}_snapshot.json`);
+		const snapshot = JSON.parse(readFileSync(snapshotPath, "utf8"));
+
+		return Object.values(snapshot.tables)
+			.map((t) => t.name)
+			.sort();
+	} catch {
+		return [];
+	}
+}
 
 const pool = new pg.Pool(config);
 
@@ -22,20 +46,7 @@ async function checkDatabaseStatus() {
       ORDER BY tablename
     `);
 
-		const expectedTables = [
-			"users",
-			"workouts",
-			"groups",
-			"group_members",
-			"challenges",
-			"challenge_participants",
-			"challenge_requirements",
-			"credit_transactions",
-			"payments",
-			"subscriptions",
-			"payment_methods",
-			"webhooks",
-		];
+		const expectedTables = getExpectedTablesFromSnapshot();
 
 		if (tables.rows.length === 0) {
 			console.log("❌ No tables found");
