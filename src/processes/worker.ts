@@ -1,5 +1,6 @@
 import { db } from "@shared/db";
 import { BaseProcess, Runner } from "@/shared/base/processes";
+import type { ModuleConstructor } from "@/shared/base/modules";
 import { Logger, LoggerUI } from "@shared/logger";
 import { AppFactory } from "@shared/factory";
 import {
@@ -13,7 +14,7 @@ import {
  * Consumer-only mode — registers event handlers without HTTP server
  */
 class WorkeProcess extends BaseProcess<void> {
-	protected _modules = [];
+	protected _modules: ModuleConstructor[] = [];
 
 	/**
 	 * Bootstrap worker process

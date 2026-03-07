@@ -2,6 +2,7 @@ import type { Context, Next } from 'hono';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import { config } from '@/shared/config';
+import { Logger } from '@shared/logger';
 
 /**
  * Configure security headers middleware
@@ -68,7 +69,7 @@ export function setupCors() {
       // SECURITY FIX: Reject wildcard with credentials
       // This prevents CSRF attacks with authenticated requests
       if (allowedOrigins.includes('*')) {
-        console.warn('⚠️  SECURITY WARNING: CORS wildcard (*) is enabled. This should only be used for public APIs without credentials.');
+        Logger.warn('SECURITY WARNING: CORS wildcard (*) is enabled. This should only be used for public APIs without credentials.');
         // For public APIs without authentication, disable credentials
         // For authenticated APIs, this should never return origin
         return null;
@@ -140,7 +141,7 @@ export function setupLogging() {
 
     // Log incoming request
     if (config.logLevel === 'debug') {
-      console.log(`[${requestId}] → ${c.req.method} ${c.req.path}`);
+      Logger.debug(`[${requestId}] → ${c.req.method} ${c.req.path}`);
     }
 
     await next();
@@ -154,14 +155,14 @@ export function setupLogging() {
 
     switch (level) {
       case 'error':
-        console.error(logMessage);
+        Logger.error(logMessage);
         break;
       case 'warn':
-        console.warn(logMessage);
+        Logger.warn(logMessage);
         break;
       default:
         if (config.logLevel === 'debug' || config.logLevel === 'info') {
-          console.log(logMessage);
+          Logger.info(logMessage);
         }
     }
   };

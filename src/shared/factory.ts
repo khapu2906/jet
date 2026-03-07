@@ -19,9 +19,6 @@ export class AppFactory {
 		if (!module) {
 			throw new Error(`No module found for key: ${String(key)}`);
 		}
-		if (!module.container) {
-			throw new Error(`Module ${String(key)} container is not initialized`);
-		}
-		return module.container;
+		return module.getContainer();
 	}
 }

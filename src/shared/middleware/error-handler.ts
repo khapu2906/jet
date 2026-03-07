@@ -3,6 +3,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { AppError, isOperationalError } from '@shared/errors';
 import type { ErrorDetails } from '@shared/errors';
 import type { ErrorResponse } from '@shared/types/response';
+import { Logger } from '@shared/logger';
 
 interface ValiErrorIssue {
   path?: string[];
@@ -19,13 +20,7 @@ interface ValiError extends Error {
  */
 export async function errorHandler(err: Error, c: Context) {
   // Log error for debugging
-  console.error('Error caught by error handler:', {
-    name: err.name,
-    message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-    path: c.req.path,
-    method: c.req.method,
-  });
+  Logger.error(`[${c.req.method}] ${c.req.path} — ${err.name}: ${err.message}${process.env.NODE_ENV === 'development' && err.stack ? `\n${err.stack}` : ''}`);
 
   // Default error response
   let statusCode = 500;

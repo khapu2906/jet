@@ -23,7 +23,7 @@ async function main() {
 main().catch((error) => {
 	Logger.error("Failed to start process: " + error.message);
 	if (error.stack) {
-		console.error(error.stack);
+		Logger.error(error.stack);
 	}
 	process.exit(1);
 });

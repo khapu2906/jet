@@ -2,7 +2,8 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema/index';
 
-import { config } from "./../config"
+import { config } from "./../config";
+import { Logger } from "./../logger";
 
 // Database connection
 export const connectionString = `postgresql://${config.database.user || 'postgres'}:${config.database.password || ''
@@ -16,7 +17,7 @@ export const client = postgres(connectionString, {
   connect_timeout: 10,
   debug: (connectionId, query) => {
     if (config.database.debug) {
-      console.log(`[Connect] ${connectionId} - [SQL]`, query);
+      Logger.debug(`[Connect] ${connectionId} - [SQL] ${query}`);
     }
   },
 });
@@ -27,3 +28,5 @@ export const db = drizzle(client, { schema });
 // Export types
 export type Database = typeof db;
 export type DbTransaction = Parameters<Parameters<Database['transaction']>[0]>[0];
+
+export const DbKey = Symbol("Database");

@@ -1,14 +1,17 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { db } from "@shared/db";
+import { db, DbKey } from "@shared/db";
 import { createOpenAPISpec, swaggerUIRoute } from "@shared/openapi";
-import { HealthService } from "@/shared/system-services/health";
-import { Module } from "@/shared/base/modules";
+import { Module, type ModuleConstructor } from "@/shared/base/modules";
 import { BaseProcess, Runner } from "@/shared/base/processes";
 import type { ServerType } from "@hono/node-server";
 import { Logger, LoggerUI } from "@shared/logger";
 import { AppFactory } from "@shared/factory";
 import { requestId } from "hono/request-id";
+
+import { AuthModule } from "@/modules/auth/module";
+import { SystemModule } from "@/modules/system/module";
+
 import {
 	errorHandler,
 	rateLimit,
@@ -17,6 +20,7 @@ import {
 	setupContentSecurityPolicy,
 	setupLogging,
 } from "@shared/middleware";
+
 import { EventBus, EventBusKey, createEventBus } from "@shared/event-manager";
 import { config } from "@shared/config";
 
@@ -24,7 +28,7 @@ import { config } from "@shared/config";
  * Application bootstrapper
  */
 class MainProcess extends BaseProcess<Hono> {
-	protected _modules = [];
+	protected _modules: ModuleConstructor[] = [SystemModule, AuthModule];
 
 	private readonly _moduleInstances = AppFactory.importModuleInstances;
 
@@ -47,7 +51,7 @@ class MainProcess extends BaseProcess<Hono> {
 
 		// 5. Setup global middleware
 		this._setupMiddleware();
-		// 6. Setup system routes FIRST (favicon, health, docs) - must come before modules
+		// 6. Setup system routes FIRST (favicon, docs) - must come before modules
 		this._setupSystemRoutes();
 
 		// 7. Bootstrap all modules (after system routes so system routes take precedence)
@@ -76,7 +80,7 @@ class MainProcess extends BaseProcess<Hono> {
 		for (const module of reverse) {
 			try {
 				await module.cleanup();
-				await module.container?.dispose?.();
+				await module.getContainer()?.dispose?.();
 			} catch (err) {
 				Logger.error(`Module cleanup error (${module.name}): ${err}`);
 			}
@@ -89,7 +93,7 @@ class MainProcess extends BaseProcess<Hono> {
 	 * Register core dependencies
 	 */
 	protected _registerCoreDependencies() {
-		this._container.singleton("db", () => db);
+		this._container.singleton(DbKey, () => db);
 
 		this._container.singleton(EventBusKey, () => createEventBus());
 	}
@@ -144,25 +148,6 @@ class MainProcess extends BaseProcess<Hono> {
 		// Handle favicon.ico request (no auth required)
 		this._app.get("/favicon.ico", (c) => c.notFound());
 
-		this._app.get("/api/health", async (c) => {
-			const health = await HealthService.check();
-			const statusCode =
-				health.status === "healthy"
-					? 200
-					: health.status === "degraded"
-						? 200
-						: 503;
-			return c.json(health, statusCode);
-		});
-
-		this._app.get("/api/health/live", async (c) =>
-			c.json(await HealthService.liveness()),
-		);
-
-		this._app.get("/api/health/ready", async (c) =>
-			c.json(await HealthService.readiness()),
-		);
-
 		if (process.env.NODE_ENV === "development") {
 			this._app.get("/docs/json", createOpenAPISpec(this._app));
 			this._app.get("/docs/ui", swaggerUIRoute);
@@ -200,18 +185,30 @@ export const runner = new Runner(async () => {
 		port: config.port,
 	}) as ServerType;
 
+	server.on("error", (err: NodeJS.ErrnoException) => {
+		if (err.code === "EADDRINUSE") {
+			Logger.error(`Port ${config.port} is already in use. Run: lsof -ti:${config.port} | xargs kill`);
+			process.exit(1);
+		}
+		throw err;
+	});
+
 	LoggerUI.serverReady({
 		port: config.port,
 		routes: [
 			{ label: "API Docs", path: "/docs/ui", icon: "📚" },
-			{ label: "Health", path: "/api/health", icon: "🏥" },
-			{ label: "Liveness", path: "/api/health/live", icon: "❤️" },
-			{ label: "Readiness", path: "/api/health/ready", icon: "✔️" },
+			{ label: "Health", path: "/health", icon: "🏥" },
+			{ label: "Liveness", path: "/health/live", icon: "❤️" },
+			{ label: "Readiness", path: "/health/ready", icon: "✔️" },
 		],
 	});
 
 	return async () => {
 		Logger.info("Shutting down gracefully...");
+		// Force-close existing connections so the port is released immediately
+		(
+			server as unknown as { closeAllConnections?: () => void }
+		).closeAllConnections?.();
 		server.close();
 		await proc.cleanup();
 	};

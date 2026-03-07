@@ -69,7 +69,7 @@ export abstract class CoreEventBus implements EventBus {
       this.config.events !== '*' &&
       !this.config.events.includes(eventName)
     ) {
-      console.warn(`Event name ${eventName} not exists in allowed events`)
+      Logger.warn(`Event name ${eventName} not exists in allowed events`)
       return;
     }
 

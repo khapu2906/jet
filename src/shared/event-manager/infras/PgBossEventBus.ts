@@ -103,7 +103,7 @@ export class PgBossEventBus extends CoreEventBus {
       await this.boss.createQueue(eventName)
       this._log(`Queue created/verified: ${eventName}`)
     } catch (err) {
-      console.warn(`Queue creation warning for ${eventName}:`, err)
+      Logger.warn(`Queue creation warning for ${eventName}: ${err}`)
     }
 
     const workerHandlers = handlers || this.handlers.get(eventName) || []

@@ -13,6 +13,10 @@ export interface AuthContext {
 	createdAt?: string;
 	updatedAt?: string;
 	sub: string;
+	/** JWT issued-at (unix seconds) — populated from token payload */
+	iat?: number;
+	/** JWT expiry (unix seconds) — populated from token payload */
+	exp?: number;
 }
 
 export interface UserCredentials {
@@ -23,19 +27,6 @@ export interface UserCredentials {
 
 export interface TokenUserMap {
 	[token: string]: string;
-}
-
-export interface LoginResponse {
-	idToken: string;
-	refreshToken: string;
-	expiresIn: number;
-	user: {
-		id: string;
-		email: string;
-		username: string;
-		role: UserRole;
-		emailVerified: boolean;
-	};
 }
 
 export interface VerifyTokenResponse {

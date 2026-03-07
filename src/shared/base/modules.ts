@@ -1,13 +1,12 @@
-import type { Hono } from 'hono';
-import { Container } from '@khapu2906/treasure-chest';
+import type { Hono } from "hono";
+import { Container } from "@khapu2906/treasure-chest";
 
 export type ModuleConstructor = new (baseContainer?: Container) => Module;
 
 export abstract class Module {
-
 	abstract readonly name: string;
 
-	container!: Container;
+	protected container!: Container;
 
 	public readonly importModuleInstances = new Map<string, Module>();
 
@@ -22,7 +21,6 @@ export abstract class Module {
 		return [];
 	}
 
-
 	/**
 	 * Register dependencies
 	 */
@@ -31,12 +29,12 @@ export abstract class Module {
 	/**
 	 * Share bindings
 	 */
-	public share(): void | Promise<void> { }
+	public share(): void | Promise<void> {}
 
 	/**
 	 * Optional lifecycle hook
 	 */
-	public async onInit(): Promise<void> { }
+	public async onInit(): Promise<void> {}
 
 	/**
 	 * Setup routes
@@ -46,13 +44,12 @@ export abstract class Module {
 	/**
 	 * Optional lifecycle hook
 	 */
-	public async onDestroy(): Promise<void> { }
+	public async onDestroy(): Promise<void> {}
 
 	/**
 	 * Internal init guard
 	 */
 	async __init() {
-
 		if (this._initialized) return;
 
 		// init imports first
@@ -71,7 +68,6 @@ export abstract class Module {
 	 * Cleanup resources
 	 */
 	async cleanup(): Promise<void> {
-
 		if (this._destroyed) return;
 
 		// destroy imports first (reverse order safer)
@@ -98,15 +94,17 @@ export abstract class Module {
 		};
 	}
 
-	private _setupContainer(baseContainer?: Container) {
+	getContainer() {
+		return this.container;
+	}
 
+	private _setupContainer(baseContainer?: Container) {
 		const myContainer = baseContainer || new Container();
 		this.container = myContainer;
 
 		const modulesToImport = this.getImportModules();
 
 		for (const ModuleClass of modulesToImport) {
-
 			const instance = new ModuleClass(this.container);
 
 			instance.share();

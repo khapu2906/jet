@@ -15,4 +15,5 @@ export {
 export { errorHandler, asyncHandler } from "./error-handler";
 
 export * from "./security";
-export * from "./middleware-config"
+export * from "./setup";
+export { validate, validateMultiple, getValidatedData } from "./validator";
