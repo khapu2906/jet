@@ -7,7 +7,6 @@ import { Module } from "@/shared/base/modules";
 import { BaseProcess, Runner } from "@/shared/base/processes";
 import type { ServerType } from "@hono/node-server";
 import { Logger, LoggerUI } from "@shared/logger";
-// import { UsersModule } from "@modules/users";
 import { AppFactory } from "@shared/factory";
 import { requestId } from "hono/request-id";
 import {
@@ -25,9 +24,7 @@ import { config } from "@shared/config";
  * Application bootstrapper
  */
 class MainProcess extends BaseProcess<Hono> {
-	protected _modules = [
-		// UsersModule,
-	];
+	protected _modules = [];
 
 	private readonly _moduleInstances = AppFactory.importModuleInstances;
 
@@ -190,7 +187,7 @@ export const runner = new Runner(async () => {
 	const proc = new MainProcess();
 
 	LoggerUI.banner({
-		name: 'Api Server',
+		name: "Api Server",
 		environment: config.nodeEnv,
 		port: config.port,
 	});
@@ -206,15 +203,15 @@ export const runner = new Runner(async () => {
 	LoggerUI.serverReady({
 		port: config.port,
 		routes: [
-			{ label: 'API Docs', path: '/docs/ui', icon: '📚' },
-			{ label: 'Health', path: '/api/health', icon: '🏥' },
-			{ label: 'Liveness', path: '/api/health/live', icon: '❤️' },
-			{ label: 'Readiness', path: '/api/health/ready', icon: '✔️' },
+			{ label: "API Docs", path: "/docs/ui", icon: "📚" },
+			{ label: "Health", path: "/api/health", icon: "🏥" },
+			{ label: "Liveness", path: "/api/health/live", icon: "❤️" },
+			{ label: "Readiness", path: "/api/health/ready", icon: "✔️" },
 		],
 	});
 
 	return async () => {
-		Logger.info('Shutting down gracefully...');
+		Logger.info("Shutting down gracefully...");
 		server.close();
 		await proc.cleanup();
 	};
