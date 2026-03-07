@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+
+# Testing
+tests
+*.test.ts
+*.test.js
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Build artifacts
+dist
+build
