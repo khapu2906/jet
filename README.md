@@ -1,5 +1,7 @@
 # Jet
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 A modular TypeScript backend framework built on [Hono](https://hono.dev), with PostgreSQL, Drizzle ORM, and built-in event-driven architecture.
 
 ## Tech Stack

@@ -2,6 +2,12 @@
 	"name": "jet",
 	"version": "0.0.1",
 	"private": true,
+	"author": {
+		"name": "Kent Phung",
+		"email": "daikhanh9260@gmail.com",
+		"url": "https://www.facebook.com/d.kha.pu"
+	},
+	"license": "MIT",
 	"scripts": {
 		"predev": "lsof -ti:2906 | xargs kill -9 2>/dev/null; true",
 		"dev": "tsx watch src/index.ts",
