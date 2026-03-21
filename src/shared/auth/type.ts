@@ -1,4 +1,4 @@
-import type { UserRole } from "./rbac"
+import type { UserRole } from "./rbac";
 
 export interface AuthContext {
 	userId: string;

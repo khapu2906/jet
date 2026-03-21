@@ -12,9 +12,11 @@ export class AuthModule extends Module {
 
 	register(): void {
 		this.container.bind(TokenIssuerKey, () => new InternalAuthProvider());
+
 		this.container.bind(AuthRepositoryKey, (c) => {
 			return new AuthRepository(c.resolve(DbKey));
 		});
+
 		this.container.bind(
 			AuthServiceKey,
 			(c) =>

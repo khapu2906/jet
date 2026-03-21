@@ -1,8 +1,8 @@
 import { createMiddleware } from "hono/factory";
 import type { AuthProvider } from "@shared/auth/providers/base";
-import type { Context } from "hono";
 import type { RBACUser } from "@fire-shield/core";
 import { Logger } from "@shared/logger";
+import { UnauthorizedError } from "@shared/errors";
 
 /**
  * Extracts and verifies token from Authorization header.
@@ -24,7 +24,7 @@ export const authenticate = (provider: AuthProvider) =>
 
 			if (!userContext) {
 				Logger.warn("Token invalid or expired");
-				return c.json({ error: "Auth invalid" }, 401);
+				throw new UnauthorizedError("Auth invalid");
 			}
 
 			c.set("currentUser", {
@@ -43,7 +43,7 @@ export const authenticate = (provider: AuthProvider) =>
 			);
 
 			await next();
-		} catch (error: unknown) {
+		} catch (error) {
 			const errMessage =
 				error instanceof Error ? error.message : "Unknown error";
 			const errStack = error instanceof Error ? error.stack : undefined;
@@ -51,29 +51,6 @@ export const authenticate = (provider: AuthProvider) =>
 				`Token verification failed: ${errMessage}${errStack ? `\n${errStack}` : ""}`,
 			);
 
-			return c.json(
-				{ error: "Invalid or expired token", details: errMessage },
-				401,
-			);
+			throw new UnauthorizedError(`Invalid or expired token`, errMessage);
 		}
 	});
-
-// Get user ID from context
-export const getUserId = (c: Context): string | null => {
-	return c.get("userId") || null;
-};
-
-// Get user email from context
-export const getUserEmail = (c: Context): string | null => {
-	return c.get("userEmail") || null;
-};
-
-// Get user role from context
-export const getUserRole = (c: Context): string | null => {
-	return c.get("userRole") || null;
-};
-
-// Get email verified status from context
-export const getEmailVerified = (c: Context): boolean => {
-	return c.get("emailVerified") || false;
-};

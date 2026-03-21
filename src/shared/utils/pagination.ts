@@ -1,33 +1,52 @@
-import * as v from 'valibot';
+import * as v from "valibot";
 
-// ─────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────
+// Query DTO (schema-first)
+export const PaginationQueryDto = v.object({
+	page: v.optional(v.string()),
+	pageSize: v.optional(v.string()),
+});
+export type PaginationQueryInput = v.InferInput<typeof PaginationQueryDto>;
 
-export interface PaginationQuery {
-	page?: string;
-	page_size?: string;
-}
+// Core DTOs (schema = type)
+export const PaginationMetaDto = v.object({
+	page: v.pipe(v.number(), v.integer(), v.minValue(1)),
+	pageSize: v.pipe(v.number(), v.integer(), v.minValue(1)),
+	totalCount: v.pipe(v.number(), v.integer(), v.minValue(0)),
+	totalPages: v.pipe(v.number(), v.integer(), v.minValue(0)),
+	hasNext: v.boolean(),
+	hasPrev: v.boolean(),
+});
+export type PaginationMeta = v.InferOutput<typeof PaginationMetaDto>;
 
-export interface PaginationParams {
+// Generic Paginated DTO (flat)
+export const createPaginatedResponseDto = <
+	T extends v.BaseSchema<any, any, any>,
+>(
+	itemSchema: T,
+) =>
+	v.object({
+		data: v.array(itemSchema),
+		pagination: PaginationMetaDto,
+		message: v.optional(v.string()),
+		timestamp: v.string(),
+	});
+
+// Generic Success DTO
+export const createSuccessResponseDto = <T extends v.BaseSchema<any, any, any>>(
+	dataSchema: T,
+) =>
+	v.object({
+		data: dataSchema,
+		message: v.optional(v.string()),
+		timestamp: v.string(),
+	});
+
+// Internal types (derived)
+export type PaginationParams = {
 	page: number;
 	pageSize: number;
 	offset: number;
-}
-
-export interface PaginationMeta {
-	page: number;
-	page_size: number;
-	total_count: number;
-	total_pages: number;
-	has_next: boolean;
-	has_prev: boolean;
-}
-
-export interface PaginatedResponse<T> {
-	data: T[];
-	pagination: PaginationMeta;
-}
+};
 
 export interface PaginationOptions {
 	defaultPage?: number;
@@ -36,30 +55,7 @@ export interface PaginationOptions {
 	minPageSize?: number;
 }
 
-// ─────────────────────────────────────────────────────────────
-// Valibot schemas
-// ─────────────────────────────────────────────────────────────
-
-export const PaginationQuerySchema = v.object({
-	page: v.optional(v.string(), '1'),
-	page_size: v.optional(v.string(), '10'),
-});
-
-export type PaginationQueryInput = v.InferInput<typeof PaginationQuerySchema>;
-
-export const PaginationMetaSchema = v.object({
-	page: v.pipe(v.number(), v.integer(), v.minValue(1)),
-	page_size: v.pipe(v.number(), v.integer(), v.minValue(1)),
-	total_count: v.pipe(v.number(), v.integer(), v.minValue(0)),
-	total_pages: v.pipe(v.number(), v.integer(), v.minValue(0)),
-	has_next: v.boolean(),
-	has_prev: v.boolean(),
-});
-
-// ─────────────────────────────────────────────────────────────
-// Utilities
-// ─────────────────────────────────────────────────────────────
-
+// Constants
 const DEFAULT_OPTIONS: Required<PaginationOptions> = {
 	defaultPage: 1,
 	defaultPageSize: 10,
@@ -67,10 +63,11 @@ const DEFAULT_OPTIONS: Required<PaginationOptions> = {
 	minPageSize: 1,
 };
 
+// Core logic
 export function parsePageParams(
 	page?: string,
 	pageSize?: string,
-	options?: PaginationOptions
+	options?: PaginationOptions,
 ): PaginationParams {
 	const opts = { ...DEFAULT_OPTIONS, ...options };
 
@@ -80,9 +77,11 @@ export function parsePageParams(
 	}
 
 	let parsedPageSize = pageSize ? parseInt(pageSize, 10) : opts.defaultPageSize;
+
 	if (isNaN(parsedPageSize) || parsedPageSize < opts.minPageSize) {
 		parsedPageSize = opts.defaultPageSize;
 	}
+
 	if (parsedPageSize > opts.maxPageSize) {
 		parsedPageSize = opts.maxPageSize;
 	}
@@ -94,37 +93,34 @@ export function parsePageParams(
 	};
 }
 
-export function calculateOffset(page: number, pageSize: number): number {
-	return (page - 1) * pageSize;
+// Validate + parse query
+export function parsePaginationQuery(
+	input: unknown,
+	options?: PaginationOptions,
+): PaginationParams {
+	const query = v.parse(PaginationQueryDto, input);
+	return parsePageParams(query.page, query.pageSize, options);
 }
 
-export function calculateTotalPages(totalCount: number, pageSize: number): number {
+export function calculateTotalPages(
+	totalCount: number,
+	pageSize: number,
+): number {
 	return Math.ceil(totalCount / pageSize);
 }
 
 export function buildPaginationMeta(
-	params: Pick<PaginationParams, 'page' | 'pageSize'>,
-	totalCount: number
+	params: Pick<PaginationParams, "page" | "pageSize">,
+	totalCount: number,
 ): PaginationMeta {
 	const totalPages = calculateTotalPages(totalCount, params.pageSize);
 
 	return {
 		page: params.page,
-		page_size: params.pageSize,
-		total_count: totalCount,
-		total_pages: totalPages,
-		has_next: params.page < totalPages,
-		has_prev: params.page > 1,
-	};
-}
-
-export function createPaginatedResponse<T>(
-	items: T[],
-	params: Pick<PaginationParams, 'page' | 'pageSize'>,
-	totalCount: number
-): PaginatedResponse<T> {
-	return {
-		data: items,
-		pagination: buildPaginationMeta(params, totalCount),
+		pageSize: params.pageSize,
+		totalCount,
+		totalPages,
+		hasNext: params.page < totalPages,
+		hasPrev: params.page > 1,
 	};
 }

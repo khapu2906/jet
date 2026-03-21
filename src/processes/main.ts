@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { db, DbKey } from "@shared/db";
-import { createOpenAPISpec, swaggerUIRoute } from "@shared/openapi";
+import { createOpenAPISpec, swaggerUIRoute } from "@/shared/doc/openapi";
 import { Module, type ModuleConstructor } from "@/shared/base/modules";
 import { BaseProcess, Runner } from "@/shared/base/processes";
 import type { ServerType } from "@hono/node-server";
@@ -13,7 +13,6 @@ import { AuthModule } from "@/modules/auth/module";
 import { SystemModule } from "@/modules/system/module";
 
 import {
-	errorHandler,
 	rateLimit,
 	setupCors,
 	setupSecurityHeaders,
@@ -23,6 +22,7 @@ import {
 
 import { EventBus, EventBusKey, createEventBus } from "@shared/event-manager";
 import { config } from "@shared/config";
+import { errorHandler } from "@/shared/errors/handler.err";
 
 /**
  * Application bootstrapper
@@ -187,7 +187,9 @@ export const runner = new Runner(async () => {
 
 	server.on("error", (err: NodeJS.ErrnoException) => {
 		if (err.code === "EADDRINUSE") {
-			Logger.error(`Port ${config.port} is already in use. Run: lsof -ti:${config.port} | xargs kill`);
+			Logger.error(
+				`Port ${config.port} is already in use. Run: lsof -ti:${config.port} | xargs kill`,
+			);
 			process.exit(1);
 		}
 		throw err;

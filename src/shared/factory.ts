@@ -1,7 +1,6 @@
 import { Container } from "@khapu2906/treasure-chest";
 import { Module } from "./base/modules";
 
-
 export class AppFactory {
 	static rootContainer = new Container();
 	static importModuleInstances = new Map<string, Module>();
@@ -11,7 +10,7 @@ export class AppFactory {
 	}
 
 	static setModule(key: string, module: Module) {
-		AppFactory.importModuleInstances.set(key, module)
+		AppFactory.importModuleInstances.set(key, module);
 	}
 
 	static getContainer(key: string): Container {

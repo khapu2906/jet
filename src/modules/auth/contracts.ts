@@ -1,23 +1,10 @@
 import type { AuthCredential, AuthIdentity } from "./model";
-import type { LoginType, RegisterType } from "./dto";
-import type { UserRole } from "@shared/auth/rbac";
-
-// ─────────────────────────────────────────────
-// Auth response types
-// ─────────────────────────────────────────────
-
-export interface LoginResponse {
-	idToken: string;
-	refreshToken: string;
-	expiresIn: number;
-	user: {
-		id: string;
-		email: string;
-		username: string;
-		role: UserRole;
-		emailVerified: boolean;
-	};
-}
+import type {
+	LoginResponse,
+	LoginType,
+	RegisterResponse,
+	RegisterType,
+} from "./dto";
 
 // ─────────────────────────────────────────────
 // Repository
@@ -32,7 +19,7 @@ export interface IAuthRepository {
 	): Promise<AuthIdentity | null>;
 	createUserWithIdentityAndCredential(
 		input: RegisterType,
-	): Promise<{ userId: string }>;
+	): Promise<RegisterResponse>;
 	incrementFailedAttempts(
 		credentialId: string,
 		lockUntil: Date | null,
@@ -47,6 +34,6 @@ export interface IAuthRepository {
 export const AuthServiceKey = Symbol("AuthService");
 
 export interface IAuthService {
-	register(input: RegisterType): Promise<{ userId: string }>;
+	register(input: RegisterType): Promise<RegisterResponse>;
 	login(input: LoginType): Promise<LoginResponse>;
 }

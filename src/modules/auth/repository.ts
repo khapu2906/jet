@@ -5,7 +5,7 @@ import { PROVIDERS } from "@shared/db/schema/indentities";
 import type { IAuthRepository } from "./contracts";
 import { hashPassword } from "./utils";
 import { AuthCredential, AuthIdentity } from "./model";
-import type { RegisterType } from "./dto";
+import type { RegisterResponse, RegisterType } from "./dto";
 
 export class AuthRepository implements IAuthRepository {
 	constructor(private readonly _access: Database) {}
@@ -45,7 +45,7 @@ export class AuthRepository implements IAuthRepository {
 
 	async createUserWithIdentityAndCredential(
 		input: RegisterType,
-	): Promise<{ userId: string }> {
+	): Promise<RegisterResponse> {
 		return this._access.transaction(async (tx) => {
 			const [user] = await tx
 				.insert(users)
@@ -69,7 +69,11 @@ export class AuthRepository implements IAuthRepository {
 				emailVerified: false,
 			});
 
-			return { userId: user.id };
+			return {
+				id: user.id,
+				email: input.email,
+				username: input.username,
+			};
 		});
 	}
 

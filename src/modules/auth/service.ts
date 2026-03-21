@@ -1,8 +1,13 @@
 import { USER_ROLES } from "@shared/auth/rbac";
 import { ConflictError, UnauthorizedError } from "@shared/errors";
 import type { TokenIssuer } from "@shared/auth/providers/base";
-import type { IAuthRepository, IAuthService, LoginResponse } from "./contracts";
-import type { LoginType, RegisterType } from "./dto";
+import type { IAuthRepository, IAuthService } from "./contracts";
+import type {
+	LoginResponse,
+	LoginType,
+	RegisterResponse,
+	RegisterType,
+} from "./dto";
 import { verifyPassword } from "./utils";
 
 export class AuthService implements IAuthService {
@@ -11,7 +16,7 @@ export class AuthService implements IAuthService {
 		private readonly _tokenIssuer: TokenIssuer,
 	) {}
 
-	async register(input: RegisterType): Promise<{ userId: string }> {
+	async register(input: RegisterType): Promise<RegisterResponse> {
 		const existing = await this._repo.findCredentialByEmail(input.email);
 		if (existing) throw new ConflictError("Email already registered");
 		return this._repo.createUserWithIdentityAndCredential(input);
