@@ -128,13 +128,7 @@ PROCESS_TYPE=api     # default — HTTP server
 PROCESS_TYPE=worker  # background job processor
 ```
 
-The worker process supports multi-threading via `WORKER_THREADS`:
-
-```env
-WORKER_THREADS=4     # spawn 4 independent consumer threads
-```
-
-Threads and instances scale independently — `WORKER_THREADS=4` across 3 instances gives 12 concurrent consumers on the same PgBoss queue.
+To scale workers, run multiple `PROCESS_TYPE=worker` instances via PM2, Docker Compose, or Kubernetes. PgBoss distributes jobs across all instances without duplication.
 
 ## API Docs
 
