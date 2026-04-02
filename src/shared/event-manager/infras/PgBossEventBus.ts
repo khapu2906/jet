@@ -36,8 +36,8 @@ export class PgBossEventBus extends CoreEventBus {
     })
     this._log(`PgBoss instance started`)
 
-    // Only register workers when role is consumer or full
-    if (this.role === 'consumer' || this.role === 'full') {
+    // Only register workers when role is consumer or both
+    if (this.role === 'consumer' || this.role === 'both') {
       for (const [eventName, handlers] of Array.from(this.handlers.entries())) {
         this._log(`Registering worker for event: ${eventName} (${handlers.length} handlers)`)
         await this._registerWorker(eventName, handlers)

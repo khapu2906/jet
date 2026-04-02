@@ -128,6 +128,14 @@ PROCESS_TYPE=api     # default — HTTP server
 PROCESS_TYPE=worker  # background job processor
 ```
 
+The worker process supports multi-threading via `WORKER_THREADS`:
+
+```env
+WORKER_THREADS=4     # spawn 4 independent consumer threads
+```
+
+Threads and instances scale independently — `WORKER_THREADS=4` across 3 instances gives 12 concurrent consumers on the same PgBoss queue.
+
 ## API Docs
 
 In development mode, Swagger UI is available at:

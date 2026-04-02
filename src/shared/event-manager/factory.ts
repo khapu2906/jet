@@ -4,7 +4,7 @@ import { PgBossEventBus } from './infras/PgBossEventBus'
 import { Logger } from '@shared/logger';
 
 export type EventBusType = 'memory' | 'pgboss'
-export type EventBusRole = 'full' | 'publisher' | 'consumer'
+export type EventBusRole = 'both' | 'publisher' | 'consumer'
 export type EventBusEvents = '*' | Array<string>
 
 export interface EventBusAsyncConfig {
@@ -47,20 +47,20 @@ function resolveEventBusType(): EventBusType {
 }
 
 /**
- * Resolve EventBus role from environment or default to 'full'
+ * Resolve EventBus role from environment or default to 'both'
  */
 function resolveEventBusRole(): EventBusRole {
   const envRole = process.env.EVENT_BUS_ROLE?.toLowerCase()
 
   if (envRole) {
-    if (!['full', 'publisher', 'consumer'].includes(envRole)) {
-      Logger.warn(`Invalid EVENT_BUS_ROLE: ${envRole}. Using 'full'.`)
-      return 'full'
+    if (!['both', 'publisher', 'consumer'].includes(envRole)) {
+      Logger.warn(`Invalid EVENT_BUS_ROLE: ${envRole}. Using 'both'.`)
+      return 'both'
     }
     return envRole as EventBusRole
   }
 
-  return 'full'
+  return 'both'
 }
 
 /**
@@ -121,8 +121,8 @@ function validateConfig(config: EventBusConfig): void {
   }
 
   // Validate role
-  if (!['full', 'publisher', 'consumer'].includes(config.role)) {
-    throw new Error(`Invalid EventBus role: ${config.role}. Must be 'full', 'publisher', or 'consumer'.`)
+  if (!['both', 'publisher', 'consumer'].includes(config.role)) {
+    throw new Error(`Invalid EventBus role: ${config.role}. Must be 'both', 'publisher', or 'consumer'.`)
   }
 
   // Validate memory + cluster combination

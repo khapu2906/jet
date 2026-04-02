@@ -22,7 +22,7 @@ export abstract class CoreEventBus implements EventBus {
   constructor(protected config: EventBusConfig) {
     this.instanceId = (this.constructor as typeof CoreEventBus).instanceCount
     ;(this.constructor as typeof CoreEventBus).instanceCount++
-    this.role = config.role || 'full'
+    this.role = config.role || 'both'
     this._log(`${this.constructor.name} instance #${this.instanceId} created (role: ${this.role})`)
   }
 
@@ -33,7 +33,7 @@ export abstract class CoreEventBus implements EventBus {
   async publish(event: DomainEvent): Promise<void> {
     // Validate role
     if (this.role === 'consumer') {
-      throw new Error('Consumer-only EventBus cannot publish events. Set EVENT_BUS_ROLE to "full" or "publisher".')
+      throw new Error('Consumer-only EventBus cannot publish events. Set EVENT_BUS_ROLE to "both" or "publisher".')
     }
 
     // Validate started state

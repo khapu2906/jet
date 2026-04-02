@@ -15,11 +15,12 @@ Controlled by `EVENT_BUS_TYPE` env var. Automatically switches to `pgboss` when 
 
 | Role | Publish | Subscribe |
 |---|---|---|
-| `full` | Yes | Yes |
+| `both` | Yes | Yes |
 | `publisher` | Yes | No |
 | `consumer` | No | Yes |
 
-- **API process** → `full` (publishes domain events, can also subscribe)
+- **API process** → `both` (publishes domain events, can also subscribe)
+- **API process** (split deployment) → `publisher` (separate worker handles consuming)
 - **Worker process** → `consumer` (subscribes only)
 
 ## Creating Events
@@ -64,7 +65,7 @@ eventBus.subscribe(new UserRegisteredHandler())
 | Env Var | Default | Description |
 |---|---|---|
 | `EVENT_BUS_TYPE` | `memory` | `memory` or `pgboss` |
-| `EVENT_BUS_ROLE` | `full` | `full`, `publisher`, `consumer` |
+| `EVENT_BUS_ROLE` | `both` | `both`, `publisher`, `consumer` |
 | `EVENT_BUS_EVENTS` | `*` | Comma-separated event names or `*` |
 | `EVENT_BUS_DEBUG` | — | Set to `true` for verbose logging |
 | `EVENT_BUS_MAX_RETRIES` | `3` | Retry count on failure (pgboss only) |
@@ -82,3 +83,15 @@ Handlers are run with `Promise.allSettled()` — one failing handler does not af
 - Supports retry with configurable delay
 - Archive interval: `1 hour` by default
 - Archived events deleted after: `7 days` by default
+
+## Worker Scaling
+
+With `pgboss`, multiple consumers (threads or processes) can poll the same queue simultaneously. PgBoss uses `FOR UPDATE SKIP LOCKED` internally — jobs are never processed twice regardless of how many consumers are running.
+
+```
+# 4 threads × 3 instances = 12 concurrent consumers on the same queue
+WORKER_THREADS=4
+# scale instances via Docker / Kubernetes / PM2
+```
+
+See [Architecture](./architecture.md#worker-threading) for full details.

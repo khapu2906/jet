@@ -54,7 +54,7 @@ All config is loaded from environment variables at startup. Invalid values cause
 | Env Var | Default | Description |
 |---|---|---|
 | `EVENT_BUS_TYPE` | `memory` | `memory` or `pgboss` |
-| `EVENT_BUS_ROLE` | `full` | `full` \| `publisher` \| `consumer` |
+| `EVENT_BUS_ROLE` | `both` | `both` \| `publisher` \| `consumer` |
 | `EVENT_BUS_EVENTS` | `*` | Comma-separated event names or `*` |
 | `EVENT_BUS_DEBUG` | — | Set to `true` for verbose logs |
 | `EVENT_BUS_MAX_RETRIES` | `3` | Retry count on handler failure |
@@ -67,3 +67,5 @@ All config is loaded from environment variables at startup. Invalid values cause
 | Env Var | Default | Description |
 |---|---|---|
 | `PROCESS_TYPE` | `api` | `api` \| `worker` |
+| `WORKER_THREADS` | `1` | Number of worker threads per instance (worker process only) |
+| `EMBEDDED_WORKER_THREADS` | `0` | Spawn N consumer threads inside the API process (disables consuming on main thread) |

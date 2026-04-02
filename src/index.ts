@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Logger } from "@shared/logger";
 import type { Runner } from "@shared/base/processes";
 
