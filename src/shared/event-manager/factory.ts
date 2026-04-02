@@ -1,9 +1,10 @@
 import { EventBus } from './event-bus'
 import { InMemoryEventBus } from './infras/InMemoryEventBus'
 import { PgBossEventBus } from './infras/PgBossEventBus'
+import { BullMQEventBus } from './infras/BullMQEventBus'
 import { Logger } from '@shared/logger';
 
-export type EventBusType = 'memory' | 'pgboss'
+export type EventBusType = 'memory' | 'pgboss' | 'bullmq'
 export type EventBusRole = 'both' | 'publisher' | 'consumer'
 export type EventBusEvents = '*' | Array<string>
 
@@ -30,7 +31,7 @@ function resolveEventBusType(): EventBusType {
   const envType = process.env.EVENT_BUS_TYPE?.toLowerCase()
 
   if (envType) {
-    if (!['memory', 'pgboss'].includes(envType)) {
+    if (!['memory', 'pgboss', 'bullmq'].includes(envType)) {
       Logger.warn(`Invalid EVENT_BUS_TYPE: ${envType}. Using default.`)
     } else {
       return envType as EventBusType
@@ -116,8 +117,8 @@ export const defaultEventBusConfig: EventBusConfig = {
  */
 function validateConfig(config: EventBusConfig): void {
   // Validate type
-  if (!['memory', 'pgboss'].includes(config.type)) {
-    throw new Error(`Invalid EventBus type: ${config.type}. Must be 'memory' or 'pgboss'.`)
+  if (!['memory', 'pgboss', 'bullmq'].includes(config.type)) {
+    throw new Error(`Invalid EventBus type: ${config.type}. Must be 'memory', 'pgboss', or 'bullmq'.`)
   }
 
   // Validate role
@@ -171,6 +172,9 @@ export function createEventBus(config: EventBusConfig = defaultEventBusConfig): 
   switch (config.type) {
     case 'pgboss':
       return new PgBossEventBus(config)
+
+    case 'bullmq':
+      return new BullMQEventBus(config)
 
     case 'memory':
     default:
