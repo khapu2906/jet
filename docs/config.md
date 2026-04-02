@@ -67,5 +67,3 @@ All config is loaded from environment variables at startup. Invalid values cause
 | Env Var | Default | Description |
 |---|---|---|
 | `PROCESS_TYPE` | `api` | `api` \| `worker` |
-| `WORKER_THREADS` | `1` | Number of worker threads per instance (worker process only) |
-| `EMBEDDED_WORKER_THREADS` | `0` | Spawn N consumer threads inside the API process (disables consuming on main thread) |

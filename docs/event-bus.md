@@ -86,12 +86,6 @@ Handlers are run with `Promise.allSettled()` — one failing handler does not af
 
 ## Worker Scaling
 
-With `pgboss`, multiple consumers (threads or processes) can poll the same queue simultaneously. PgBoss uses `FOR UPDATE SKIP LOCKED` internally — jobs are never processed twice regardless of how many consumers are running.
+With `pgboss`, multiple `PROCESS_TYPE=worker` instances can poll the same queue simultaneously. PgBoss uses `FOR UPDATE SKIP LOCKED` internally — jobs are never processed twice regardless of how many instances are running.
 
-```
-# 4 threads × 3 instances = 12 concurrent consumers on the same queue
-WORKER_THREADS=4
-# scale instances via Docker / Kubernetes / PM2
-```
-
-See [Architecture](./architecture.md#worker-threading) for full details.
+Scale via Docker Compose replicas, Kubernetes, or PM2. See [Architecture](./architecture.md#worker-scaling) for details.

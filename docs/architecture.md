@@ -11,33 +11,18 @@ PROCESS_TYPE=worker  # Background job consumer
 
 Both processes share the same module system and dependency injection container but initialize different infrastructure.
 
-## Worker Threading
+## Worker Scaling
 
-The worker process supports multi-threading via Node.js `worker_threads`. Each thread runs an independent event loop with its own EventBus consumer, enabling true parallelism.
+To run multiple worker consumers, start multiple `PROCESS_TYPE=worker` instances via PM2, Docker Compose, or Kubernetes. PgBoss distributes jobs across all running instances without duplication.
 
+```yaml
+# docker-compose.yml example
+worker:
+  environment:
+    PROCESS_TYPE: worker
+  deploy:
+    replicas: 4
 ```
-WORKER_THREADS=4  # spawn 4 worker threads (default: 1)
-```
-
-Each thread is an independent consumer — PgBoss distributes jobs across all threads without duplication.
-
-**Scaling modes:**
-
-| Mode | Config |
-|---|---|
-| Single consumer | `WORKER_THREADS=1`, 1 instance |
-| Vertical (threads) | `WORKER_THREADS=N`, 1 instance |
-| Horizontal (instances) | `WORKER_THREADS=1`, N instances |
-| Both | `WORKER_THREADS=N`, M instances → N×M consumers |
-
-**Thread lifecycle:**
-- Main thread spawns N workers, each auto-starts its own `WorkerProcess`
-- Crashed threads are automatically restarted
-- On `SIGTERM`/`SIGINT`, main thread sends shutdown signal to all threads and waits for clean exit (force-terminates after 5s)
-
-**Practical limits:**
-- Setting `WORKER_THREADS` beyond available CPU cores adds context-switching overhead with no throughput gain
-- Each thread opens its own database connection pool — account for this when sizing `max_connections` in PostgreSQL
 
 ## Application Lifecycle
 
