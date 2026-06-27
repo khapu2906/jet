@@ -15,4 +15,4 @@ export type Config = typeof config;
 
 export const isDevelopment = () => config.nodeEnv === "development";
 export const isProduction = () => config.nodeEnv === "production";
-export const isTest = () => config.nodeEnv === "test";
+export const isStaging = () => config.nodeEnv === "staging";

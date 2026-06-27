@@ -6,7 +6,7 @@ const AppEnvSchema = v.object({
 	APP_HOST: v.optional(v.string(), "0.0.0.0"),
 	PORT: envNumber(2906),
 	NODE_ENV: v.optional(
-		v.picklist(["development", "production", "test"]),
+		v.picklist(["development", "production", "staging"]),
 		"development",
 	),
 

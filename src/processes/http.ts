@@ -23,6 +23,8 @@ import {
 import { EventBus, EventBusKey, createEventBus } from "@shared/event-manager";
 import { config } from "@shared/config";
 import { errorHandler } from "@/shared/errors/handler.err";
+import { storageConfig } from "@/shared/config/storage";
+import { LocalStorage, StorageKey } from "@/shared/storage";
 
 /**
  * Application bootstrapper
@@ -35,11 +37,11 @@ class MainProcess extends BaseProcess<Hono> {
 	private readonly _moduleOrder: Module[] = [];
 
 	async bootstrap(): Promise<Hono> {
+		this._app = new Hono();
 		this._registerCoreDependencies();
-		await this._initModules();
 		await this._startInfrastructure();
 
-		this._app = new Hono();
+		await this._initModules();
 		this._setupMiddleware();
 		this._setupSystemRoutes();
 		await this._bootstrapModules();
@@ -73,7 +75,8 @@ class MainProcess extends BaseProcess<Hono> {
 
 	protected _registerCoreDependencies() {
 		this._container.singleton(DbKey, () => db);
-		this._container.singleton(EventBusKey, () => createEventBus());
+		const eventBus = createEventBus();
+		this._container.singleton(EventBusKey, () => eventBus);
 	}
 
 	protected async _initModules() {
@@ -109,6 +112,11 @@ class MainProcess extends BaseProcess<Hono> {
 		if (process.env.NODE_ENV === "development") {
 			this._app.get("/docs/json", createOpenAPISpec(this._app));
 			this._app.get("/docs/ui", swaggerUIRoute);
+		}
+
+		if (storageConfig.provider === "local") {
+			const localStorage = this._container.resolve<LocalStorage>(StorageKey);
+			this._app.route("/storage", localStorage.createRouter("/storage"));
 		}
 	}
 

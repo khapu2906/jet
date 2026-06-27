@@ -1,11 +1,11 @@
 import type { OpenAPIV3_1 } from "openapi-types";
-import type { BaseSchema } from "valibot";
+import type { GenericSchema } from "valibot";
 import { toOpenAPISchema } from "./schema";
 
 /**
  * Build application/json content
  */
-export function jsonContent<T extends BaseSchema<any, any, any>>(schema: T) {
+export function jsonContent<T extends GenericSchema>(schema: T) {
 	return {
 		"application/json": {
 			schema: toOpenAPISchema(schema),

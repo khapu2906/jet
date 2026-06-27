@@ -1,6 +1,7 @@
 import { type Context, type Next } from "hono";
 import * as v from "valibot";
 import { ValidationError } from "@shared/errors";
+import { Logger } from "@shared/logger";
 
 /**
  * Validation source types
@@ -56,7 +57,9 @@ export function validate(
 					message: e.message,
 					value: e.input,
 				}));
-
+				Logger.debug(
+					`[Validator] ${source} validation failed: ${JSON.stringify(details)}`,
+				);
 				throw new ValidationError("Validation failed", details);
 			}
 			throw error;

@@ -64,10 +64,14 @@ function normalizeError(error: unknown): AppError {
 
 	// Validation (Valibot)
 	if (error instanceof ValiError) {
-		const details: ErrorDetails = error.issues?.map((e) => ({
-			field: e.path?.join(".") || "unknown",
-			message: e.message,
-		}));
+		const details: ErrorDetails = error.issues?.map(function (e) {
+			return {
+				field:
+					e.path?.map((p: { key: unknown }) => String(p.key)).join(".") ||
+					"unknown",
+				message: e.message,
+			};
+		});
 
 		return new ValidationError("Validation failed", details);
 	}

@@ -1,6 +1,9 @@
 import type { Context, MiddlewareHandler, Next } from "hono";
-import { rateLimiter } from "hono-rate-limiter";
 import { config } from "@shared/config";
+import {
+	rateLimitRegistry,
+	type RateLimitDefaults,
+} from "./rate-limit-registry";
 
 function parseTimeWindow(window: string): number {
 	const match = window.match(/^(\d+)([smh])$/);
@@ -37,40 +40,45 @@ function extractSubFromJwt(authHeader: string | undefined): string | null {
 	}
 }
 
+const defaultKeyGenerator = (c: Context): string => {
+	// 1. Authenticated — derive key from Cognito sub inside the signed JWT
+	const sub = extractSubFromJwt(c.req.header("Authorization"));
+	if (sub) return `user:${sub}`;
+
+	// 2. Unauthenticated — use real client IP
+	//    X-Forwarded-For may be "client, proxy1, proxy2" — leftmost is the real client
+	const forwardedFor = c.req.header("X-Forwarded-For")?.split(",")[0].trim();
+	const realIp = c.req.header("X-Real-IP");
+	const socketIp = (
+		c.env as { incoming?: { socket?: { remoteAddress?: string } } }
+	)?.incoming?.socket?.remoteAddress;
+
+	return forwardedFor || realIp || socketIp || "anonymous";
+};
+
+const rateLimitDefaults: RateLimitDefaults = {
+	windowMs: parseTimeWindow(config.rateLimitWindow),
+	limit: config.rateLimitMax,
+	keyGenerator: defaultKeyGenerator,
+};
+
 /**
  * Rate limiting middleware backed by hono-rate-limiter.
  * Controlled by RATE_LIMIT_ENABLED / RATE_LIMIT_MAX / RATE_LIMIT_WINDOW env vars.
  *
- * Key resolution order:
+ * Default key resolution order:
  *   1. Authenticated  → `user:<cognito_sub>` (extracted from Bearer JWT, cannot be spoofed)
  *   2. Unauthenticated → real IP from X-Forwarded-For / X-Real-IP / TCP socket
  *   3. Fallback        → 'anonymous' (all unknown clients share one bucket)
+ *
+ * Modules can register a per-route override (different limit/window/keyGenerator,
+ * or `{ enabled: false }` to bypass entirely) via `rateLimitRegistry.register(prefix, override)`.
+ * The longest matching path prefix wins; unmatched paths fall back to the defaults above.
  *
  * NOTE: Uses the default in-memory store. For multi-process / clustered deployments
  * replace with a shared store (e.g. hono-rate-limiter Redis adapter).
  */
 export const rateLimit: MiddlewareHandler = config.rateLimitEnabled
-	? rateLimiter({
-			windowMs: parseTimeWindow(config.rateLimitWindow),
-			limit: config.rateLimitMax,
-			standardHeaders: "draft-6",
-			keyGenerator: (c: Context) => {
-				// 1. Authenticated — derive key from Cognito sub inside the signed JWT
-				const sub = extractSubFromJwt(c.req.header("Authorization"));
-				if (sub) return `user:${sub}`;
-
-				// 2. Unauthenticated — use real client IP
-				//    X-Forwarded-For may be "client, proxy1, proxy2" — leftmost is the real client
-				const forwardedFor = c.req
-					.header("X-Forwarded-For")
-					?.split(",")[0]
-					.trim();
-				const realIp = c.req.header("X-Real-IP");
-				const socketIp = (
-					c.env as { incoming?: { socket?: { remoteAddress?: string } } }
-				)?.incoming?.socket?.remoteAddress;
-
-				return forwardedFor || realIp || socketIp || "anonymous";
-			},
-		})
+	? (c: Context, next: Next) =>
+			rateLimitRegistry.resolve(c.req.path, rateLimitDefaults)(c, next)
 	: (_c: Context, next: Next) => next();

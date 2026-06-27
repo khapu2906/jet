@@ -1,16 +1,18 @@
-export * from "./event-handler";
-export * from "./event";
-export * from "./events";
-export * from "./factory";
+import "@shared/logger"; // Ensure CoreLogger is configured before EventBus uses it
+import { createEventBus as _createEventBus } from "@event-bus-manager/core";
+import { eventBusConfig } from "@shared/config/event-bus";
 
-import { DomainEvent } from "./event";
-import { EventHandler } from "./event-handler";
+export type {
+	EventBus,
+	DomainEvent,
+	EventHandler,
+	PayloadOf,
+} from "@event-bus-manager/core";
+export { createEvent } from "@event-bus-manager/core";
 
+// DI key — belongs to app layer, not the package
 export const EventBusKey = Symbol("EventBus");
 
-export interface EventBus {
-	start(): Promise<void>;
-	stop(): Promise<void>;
-	publish(event: DomainEvent): Promise<void>;
-	subscribe(handler: EventHandler): void;
+export function createEventBus() {
+	return _createEventBus(eventBusConfig);
 }

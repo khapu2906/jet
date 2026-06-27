@@ -6,6 +6,7 @@ import {
 } from "./pagination";
 import * as v from "valibot";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function paginated<T extends v.BaseSchema<any, any, any>>(
 	schema: T,
 	items: v.InferOutput<T>[],
@@ -23,6 +24,7 @@ export function paginated<T extends v.BaseSchema<any, any, any>>(
 	return v.parse(createPaginatedResponseDto(schema), response);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function success<T extends v.BaseSchema<any, any, any>>(
 	schema: T,
 	data: v.InferOutput<T>,

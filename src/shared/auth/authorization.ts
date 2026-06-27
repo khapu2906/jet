@@ -9,7 +9,7 @@ export const rbac = new RBAC({ config });
 
 export const rbacAdapter = new HonoRBACAdapter(rbac, {
 	getUser: (c: Context) => c.get("currentUser"),
-	onUnauthorized: (result: AuthorizationResult, c: Context) => {
+	onUnauthorized: (result: AuthorizationResult, _c: Context) => {
 		throw new ForbiddenError("Access Denied", {
 			required: result.reason,
 			user: (result.user as RBACUser)?.id,

@@ -1,19 +1,23 @@
 import { describeRoute as describeRouteBase } from "hono-openapi";
 import type { OpenAPIV3_1 } from "openapi-types";
-import type { BaseSchema } from "valibot";
+import type { GenericSchema } from "valibot";
 import { jsonContent } from "./content";
 import { ErrorResponses } from "./responses";
+import { schemaToParameters } from "./params";
 
 type RouteOptions<
-	TReq extends BaseSchema<any, any, any> | undefined = undefined,
-	TRes extends BaseSchema<any, any, any> | undefined = undefined,
+	TReq extends GenericSchema | undefined = undefined,
+	TRes extends GenericSchema | undefined = undefined,
+	TQuery extends GenericSchema | undefined = undefined,
+	TPath extends GenericSchema | undefined = undefined,
 > = {
 	tag: string;
 	description?: string;
 
 	request?: TReq;
 	response?: TRes;
-
+	query?: TQuery;
+	path?: TPath;
 	status?: number;
 
 	responses?: Record<number, OpenAPIV3_1.ResponseObject>;
@@ -26,24 +30,32 @@ type RouteOptions<
  * Clean wrapper for describeRoute
  */
 export function describeRoute<
-	TReq extends BaseSchema<any, any, any> | undefined,
-	TRes extends BaseSchema<any, any, any> | undefined,
+	TReq extends GenericSchema | undefined,
+	TRes extends GenericSchema | undefined,
+	TQuery extends GenericSchema | undefined = undefined,
+	TPath extends GenericSchema | undefined = undefined,
 >({
 	tag,
 	description,
 	request,
 	response,
+	query,
+	path,
 	status = 200,
 	responses,
-	params,
-	security = [{ BearerAuth: [] }],
-}: RouteOptions<TReq, TRes>) {
+	security = [{ bearerAuth: [] }],
+}: RouteOptions<TReq, TRes, TQuery, TPath>) {
+	const parameters: OpenAPIV3_1.ParameterObject[] = [
+		...(path ? schemaToParameters(path, "path") : []),
+		...(query ? schemaToParameters(query, "query") : []),
+	];
+
 	return describeRouteBase({
 		tags: [tag],
 		description,
 		security,
 
-		...(params && { parameters: params }),
+		...(parameters.length > 0 ? { parameters } : {}),
 
 		...(request && {
 			requestBody: {

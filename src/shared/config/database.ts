@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import { envNumber, parseEnv } from "./env";
 import { Logger } from "@shared/logger";
+import { appConfig } from "./app";
 
 const DatabaseEnvSchema = v.object({
 	DB_HOST: v.optional(v.string(), "localhost"),
@@ -12,15 +13,11 @@ const DatabaseEnvSchema = v.object({
 	DB_SSL_REJECT_UNAUTHORIZED: v.optional(v.string()),
 	DB_SSL_CA: v.optional(v.string()),
 	DB_DEBUG: v.optional(v.string()),
-	NODE_ENV: v.optional(
-		v.picklist(["development", "production", "test"]),
-		"development",
-	),
 });
 
 const dbEnv = parseEnv(DatabaseEnvSchema);
 
-if (dbEnv.NODE_ENV === "production") {
+if (appConfig.nodeEnv === "production") {
 	const missing: string[] = [];
 	if (!process.env.DB_USER) missing.push("DB_USER");
 	if (!process.env.DB_PASSWORD) missing.push("DB_PASSWORD");
@@ -40,7 +37,7 @@ export const dbConfig = {
 	password: dbEnv.DB_PASSWORD,
 	database: dbEnv.DB_NAME,
 	ssl:
-		dbEnv.NODE_ENV === "production"
+		appConfig.nodeEnv === "production"
 			? {
 					rejectUnauthorized: dbEnv.DB_SSL_REJECT_UNAUTHORIZED !== "false",
 					ca: dbEnv.DB_SSL_CA,

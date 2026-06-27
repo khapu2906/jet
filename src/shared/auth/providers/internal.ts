@@ -16,9 +16,18 @@ export interface InternalJwtPayload {
 }
 
 export class InternalAuthProvider implements AuthProvider, TokenIssuer {
+	extractToken(headers: Record<string, string | undefined>): string | null {
+		const auth = headers["authorization"];
+		if (!auth?.startsWith("Bearer ")) return null;
+		return auth.substring(7);
+	}
+
 	async verify(token: string): Promise<AuthContext | null> {
 		try {
-			const payload = jwt.verify(token, authConfig.jwtSecret) as InternalJwtPayload;
+			const payload = jwt.verify(
+				token,
+				authConfig.jwtSecret,
+			) as InternalJwtPayload;
 			return {
 				sub: payload.sub,
 				userId: payload.userId,
@@ -35,7 +44,9 @@ export class InternalAuthProvider implements AuthProvider, TokenIssuer {
 	}
 
 	sign(payload: Record<string, unknown>, expiresIn = "1h"): string {
-		return jwt.sign(payload as object, authConfig.jwtSecret, { expiresIn } as SignOptions);
+		return jwt.sign(payload as object, authConfig.jwtSecret, {
+			expiresIn,
+		} as SignOptions);
 	}
 }
 

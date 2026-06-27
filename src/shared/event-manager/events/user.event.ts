@@ -1,15 +1,11 @@
-export type UserCreatedPayload = {
-	email: string
-	username: string
-	tempPassword?: string
-}
+import { defineEvent } from "@event-bus-manager/core";
 
-export const USER_CREATED_EVENT = 'user.created'
+export const UserCreated = defineEvent<{
+	email: string;
+	username: string;
+}>("user.created", "v1");
 
-
-export type UserUpdatedPayload = {
-	email: string
-	username: string
-}
-
-export const USER_UPDATED_EVENT = 'user.updated'
+export const UserUpdated = defineEvent<{
+	email: string;
+	username: string;
+}>("user.updated", "v1");

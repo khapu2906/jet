@@ -1,26 +1,10 @@
 import { USER_ROLES } from "./roles";
 import { Permissions } from "./permissions";
-
-// ───────────────── Interfaces ─────────────────
-interface PermissionConfig {
-	name: string;
-}
-
-interface RoleConfig {
-	name: string;
-	permissions: string[];
-}
-
-interface RBACConfig {
-	name: string;
-	version: string;
-	permissions: PermissionConfig[];
-	roles: RoleConfig[];
-}
+import type { PresetConfig } from "@fire-shield/core";
 
 // ───────────────── Config ─────────────────
-export const config: RBACConfig = {
-	name: "CreativeEvaluationTool",
+export const config: PresetConfig = {
+	name: "Jet Framework",
 	version: "v1",
 
 	// ─────────────── Permissions registry ───────────────
@@ -34,7 +18,7 @@ export const config: RBACConfig = {
 
 	// ─────────────── Role definitions ───────────────
 	roles: [
-		// ───── Maker ─────
+		// ───── Normal User ─────
 		{
 			name: USER_ROLES.NORMAL_USER,
 			permissions: [

@@ -20,6 +20,7 @@ export type PaginationMeta = v.InferOutput<typeof PaginationMetaDto>;
 
 // Generic Paginated DTO (flat)
 export const createPaginatedResponseDto = <
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	T extends v.BaseSchema<any, any, any>,
 >(
 	itemSchema: T,
@@ -32,6 +33,7 @@ export const createPaginatedResponseDto = <
 	});
 
 // Generic Success DTO
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createSuccessResponseDto = <T extends v.BaseSchema<any, any, any>>(
 	dataSchema: T,
 ) =>

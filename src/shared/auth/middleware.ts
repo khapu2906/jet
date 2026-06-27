@@ -10,14 +10,16 @@ import { UnauthorizedError } from "@shared/errors";
  */
 export const authenticate = (provider: AuthProvider) =>
 	createMiddleware(async (c, next) => {
-		const authHeader = c.req.header("Authorization");
+		const headers = Object.fromEntries(
+			["authorization"].map((k) => [k, c.req.header(k)]),
+		);
 
-		if (!authHeader || !authHeader.startsWith("Bearer ")) {
-			Logger.warn(`Auth header missing or invalid: ${authHeader}`);
-			return c.json({ error: "Missing or invalid authorization header" }, 401);
+		const idToken = provider.extractToken(headers);
+
+		if (!idToken) {
+			Logger.warn(`Auth header missing or invalid`);
+			throw new UnauthorizedError("Missing or invalid authorization header");
 		}
-
-		const idToken = authHeader.substring(7);
 
 		try {
 			const userContext = await provider.verify(idToken);

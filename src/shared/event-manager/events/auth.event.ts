@@ -1,7 +1,7 @@
-export type PasswordResetPayload = {
-	email: string
-	username: string
-	resetLink: string
-}
+import { defineEvent } from "@event-bus-manager/core";
 
-export const PASSWORD_RESET_EVENT = 'auth.password-reset'
+export const AuthResetedPassword = defineEvent<{
+	email: string;
+	username: string;
+	resetLink: string;
+}>("auth.password-reseted", "v1");

@@ -1,30 +1,42 @@
-import { db } from "@shared/db";
 import { BaseProcess, Runner } from "@/shared/base/processes";
 import type { ModuleConstructor } from "@/shared/base/modules";
 import { Logger, LoggerUI } from "@shared/logger";
 import { AppFactory } from "@shared/factory";
-import { EventBus, EventBusKey, createEventBus } from "@shared/event-manager";
+import { createEventBus, EventBus, EventBusKey } from "@/shared/event-manager";
+import { SchedulerKey, SchedulerManager } from "@/shared/scheduler/manager";
+import { DemoSchedulerModule } from "@/modules/demo-scheduler/module";
 
-class WorkerProcess extends BaseProcess<void> {
-	protected _modules: ModuleConstructor[] = [];
+class SchedulerProcess extends BaseProcess<void> {
+	protected _modules: ModuleConstructor[] = [DemoSchedulerModule];
 
 	async bootstrap(): Promise<void> {
 		this._registerCoreDependencies();
 		this._initModules();
 
-		const eventBus: EventBus = AppFactory.rootContainer.resolve(EventBusKey);
+		const eventBus: EventBus = this._container.resolve(EventBusKey);
 		await eventBus.start();
 
-		Logger.info("Worker process started — consuming events from queue");
-		Logger.info(`Loaded ${this._modules.length} modules`);
+		const scheduler =
+			AppFactory.rootContainer.resolve<SchedulerManager>(SchedulerKey);
+		const jobs = scheduler.listJobs();
+
+		Logger.info("Scheduler process started");
+		Logger.info(
+			`Loaded ${this._modules.length} modules, ${jobs.length} jobs registered`,
+		);
+		Logger.info(`Active jobs: ${jobs.join(", ")}`);
 	}
 
 	async cleanup(): Promise<void> {
 		try {
-			const eventBus = AppFactory.rootContainer.resolve<EventBus>(EventBusKey);
+			const scheduler =
+				AppFactory.rootContainer.resolve<SchedulerManager>(SchedulerKey);
+			await scheduler.stop();
+
+			const eventBus = this._container.resolve<EventBus>(EventBusKey);
 			await eventBus.stop();
 		} catch (error) {
-			Logger.error(`Error stopping EventBus: ${error}`);
+			Logger.error(`Error stopping Scheduler: ${error}`);
 		}
 
 		const moduleInstances = Array.from(
@@ -44,8 +56,9 @@ class WorkerProcess extends BaseProcess<void> {
 
 	protected _registerCoreDependencies() {
 		const eventBus = createEventBus();
-		AppFactory.rootContainer.singleton("db", () => db);
-		AppFactory.rootContainer.singleton(EventBusKey, () => eventBus);
+		const schedulerManager = new SchedulerManager();
+		this._container.singleton(SchedulerKey, () => schedulerManager);
+		this._container.singleton(EventBusKey, () => eventBus);
 	}
 
 	protected _initModules() {
@@ -58,15 +71,12 @@ class WorkerProcess extends BaseProcess<void> {
 }
 
 export const runner = new Runner(async () => {
-	const proc = new WorkerProcess();
-
+	const proc = new SchedulerProcess();
 	LoggerUI.banner({
-		name: "Event Worker",
+		name: "Scheduler",
 		environment: process.env.NODE_ENV || "development",
 		port: 0,
 	});
-
 	await proc.bootstrap();
-
 	return () => proc.cleanup();
 });
