@@ -18,7 +18,7 @@ A modular TypeScript backend framework built on [Hono](https://hono.dev), with P
 
 ### Overview
 <div align="center">
-  <img src="https://github.com/khapu2906/jet/blob/main/assets/arch.png?raw=true" alt="Jet Architect" width="200" />
+  <img src="https://github.com/khapu2906/jet/blob/main/assets/arch.png?raw=true" alt="Jet Architect" />
 </div>
 
 ### Prerequisites
