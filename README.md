@@ -84,7 +84,7 @@ Server runs on `http://localhost:2906` by default.
 src/
 ├── index.ts                   # Entry point: selects process type
 ├── processes/
-│   ├── api.ts                # HTTP API server process
+│   ├── http.ts                # HTTP API server process
 │   ├── worker.ts             # Background job worker process
 │   └── scheduler.ts          # Scheduled job process
 │
