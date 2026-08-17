@@ -11,8 +11,8 @@ import { Logger } from "@shared/logger";
 export function setupSecurityHeaders() {
 	return async (c: Context, next: Next) => {
 		// Basic security headers via Hono's secureHeaders
-		// crossOriginResourcePolicy: false — secureHeaders set headers SAU next() (xem setHeaders())
-		// nên sẽ override CORP ta set per-route trong callback. Quản lý thủ công bên dưới.
+		// crossOriginResourcePolicy: false — secureHeaders sets headers AFTER next() (see setHeaders())
+		// so it would override the per-route CORP we set in the callback. Managed manually below.
 		const secureHeadersMiddleware = secureHeaders({
 			xFrameOptions: "DENY",
 			xContentTypeOptions: "nosniff",
@@ -37,13 +37,13 @@ export function setupSecurityHeaders() {
 			);
 
 			// Cross-Origin policies for enhanced isolation.
-			// COEP: chỉ set cho non-storage routes vì COEP trên resource responses
-			// không có ý nghĩa và có thể gây conflict với browser isolation model.
+			// COEP: only set for non-storage routes since COEP on resource responses
+			// doesn't make sense and can conflict with the browser isolation model.
 			if (!c.req.path.startsWith("/storage")) {
 				c.header("Cross-Origin-Embedder-Policy", "require-corp");
 				c.header("Cross-Origin-Opener-Policy", "same-origin");
 			}
-			// CORP: cross-origin cho /storage để FE (khác port) load được media files.
+			// CORP: cross-origin for /storage so the FE (different port) can load media files.
 			c.header(
 				"Cross-Origin-Resource-Policy",
 				c.req.path.startsWith("/storage") ? "cross-origin" : "same-origin",

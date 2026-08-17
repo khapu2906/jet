@@ -8,12 +8,50 @@ const PROCESS_REGISTRY: Record<string, () => Promise<{ runner: Runner }>> = {
 	scheduler: () => import("./processes/scheduler"),
 };
 
+const SHUTDOWN_TIMEOUT_MS = 5000;
+
+const stopHandlers: Array<{ type: string; stop: () => Promise<void> }> = [];
+let isShuttingDown = false;
+
 async function runOne(processType: string): Promise<void> {
 	const { runner } = await PROCESS_REGISTRY[processType]();
 	Logger.info(`[${processType}] starting...`);
-	await runner.run();
-	Logger.info(`[${processType}] finished.`);
+	const stop = await runner.run();
+	stopHandlers.push({ type: processType, stop });
+	Logger.info(`[${processType}] started.`);
 }
+
+async function shutdown(signal: string): Promise<void> {
+	if (isShuttingDown) return;
+	isShuttingDown = true;
+
+	Logger.info(`Received ${signal}, shutting down gracefully...`);
+
+	// Force exit if any process's cleanup hangs, so the port/handles are
+	// always released (e.g. for tsx watch restarts or orchestrator restarts).
+	const timer = setTimeout(() => {
+		Logger.error(
+			`Shutdown did not finish within ${SHUTDOWN_TIMEOUT_MS}ms, forcing exit`,
+		);
+		process.exit(1);
+	}, SHUTDOWN_TIMEOUT_MS);
+	timer.unref();
+
+	const results = await Promise.allSettled(
+		stopHandlers.map(({ type, stop }) =>
+			stop().catch((error) => {
+				Logger.error(`[${type}] shutdown error: ${error}`);
+				throw error;
+			}),
+		),
+	);
+
+	clearTimeout(timer);
+	process.exit(results.some((r) => r.status === "rejected") ? 1 : 0);
+}
+
+process.on("SIGTERM", () => void shutdown("SIGTERM"));
+process.on("SIGINT", () => void shutdown("SIGINT"));
 
 async function runSelected(types: string[]): Promise<void> {
 	Logger.info(`Running processes: ${types.join(", ")}`);
@@ -34,13 +72,16 @@ async function runSelected(types: string[]): Promise<void> {
 async function main() {
 	const processType = process.env.PROCESS_TYPE ?? "api";
 
-	const types =
-		processType === "*"
-			? Object.keys(PROCESS_REGISTRY)
-			: processType
-					.split(",")
-					.map((t) => t.trim())
-					.filter(Boolean);
+	const types = [
+		...new Set(
+			processType === "*"
+				? Object.keys(PROCESS_REGISTRY)
+				: processType
+						.split(",")
+						.map((t) => t.trim())
+						.filter(Boolean),
+		),
+	];
 
 	const invalid = types.filter((t) => !(t in PROCESS_REGISTRY));
 	if (invalid.length > 0) {

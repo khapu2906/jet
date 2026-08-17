@@ -35,19 +35,14 @@ export class Runner {
 		private readonly _bootstrap: () => Promise<() => Promise<void>>,
 	) {}
 
-	async run(): Promise<void> {
-		const stop = await this._bootstrap();
-
-		const shutdown = async () => {
-			// Force exit after 5s to guarantee port is released for tsx watch restarts
-			const timer = setTimeout(() => process.exit(1), 5000);
-			timer.unref();
-			await stop();
-			clearTimeout(timer);
-			process.exit(0);
-		};
-
-		process.on("SIGTERM", shutdown);
-		process.on("SIGINT", shutdown);
+	/**
+	 * Bootstraps the process and returns its stop function.
+	 * Signal handling (SIGTERM/SIGINT) is coordinated centrally in
+	 * src/index.ts so multiple processes sharing one Node process
+	 * (PROCESS_TYPE=*) shut down together instead of racing each
+	 * other to call process.exit().
+	 */
+	async run(): Promise<() => Promise<void>> {
+		return this._bootstrap();
 	}
 }

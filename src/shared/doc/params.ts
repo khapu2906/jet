@@ -32,7 +32,7 @@ export function schemaToParameters(
 	return Object.entries(properties).map(([name, propertySchema]) => ({
 		name,
 		in: location,
-		// OpenAPI bắt buộc path params phải required=true
+		// OpenAPI requires path params to always be required=true
 		required: location === "path" ? true : required.has(name),
 		schema: propertySchema as
 			| OpenAPIV3_1.SchemaObject

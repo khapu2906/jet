@@ -134,4 +134,3 @@ All config is loaded from environment variables at startup. Invalid values cause
   * Missing DB credentials → crash
   * Default JWT secret → crash
 * Rate limiting is enabled unless explicitly `"false"`
-

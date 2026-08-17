@@ -21,6 +21,10 @@ export const ErrorResponses: Record<number, OpenAPIV3_1.ResponseObject> = {
 		description: "Not Found",
 		content: errorContent,
 	},
+	409: {
+		description: "Conflict",
+		content: errorContent,
+	},
 	422: {
 		description: "Validation failed",
 		content: errorContent,
