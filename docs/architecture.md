@@ -6,7 +6,7 @@
 The application supports three process types, controlled by the `PROCESS_TYPE` environment variable:
 
 ```
-PROCESS_TYPE=api         # HTTP API server (default)
+PROCESS_TYPE=http         # HTTP API server (default)
 PROCESS_TYPE=worker      # Background job consumer
 PROCESS_TYPE=scheduler   # Scheduled job trigger service
 ```

@@ -29,7 +29,7 @@ import { LocalStorage, StorageKey } from "@/shared/storage";
 /**
  * Application bootstrapper
  */
-class MainProcess extends BaseProcess<Hono> {
+class HttpProcess extends BaseProcess<Hono> {
 	protected _modules: ModuleConstructor[] = [SystemModule, AuthModule];
 
 	private readonly _moduleInstances = AppFactory.importModuleInstances;
@@ -132,7 +132,7 @@ class MainProcess extends BaseProcess<Hono> {
 }
 
 export const runner = new Runner(async () => {
-	const proc = new MainProcess();
+	const proc = new HttpProcess();
 
 	LoggerUI.banner({
 		name: "Api Server",
@@ -170,10 +170,43 @@ export const runner = new Runner(async () => {
 
 	return async () => {
 		Logger.info("Shutting down gracefully...");
-		(
-			server as unknown as { closeAllConnections?: () => void }
-		).closeAllConnections?.();
-		server.close();
+		await closeServer(server);
 		await proc.cleanup();
 	};
 });
+
+/**
+ * Stop accepting new connections and let in-flight requests finish.
+ * Only force-closes remaining sockets after the grace period, so a
+ * SIGTERM doesn't cut off a request that's already being handled.
+ */
+const DRAIN_GRACE_PERIOD_MS = 3000;
+
+function closeServer(server: ServerType): Promise<void> {
+	return new Promise((resolve) => {
+		const closeIdle = () =>
+			(
+				server as unknown as { closeIdleConnections?: () => void }
+			).closeIdleConnections?.();
+
+		const graceTimer = setTimeout(() => {
+			Logger.info(
+				"Drain grace period elapsed, forcing remaining connections closed",
+			);
+			(
+				server as unknown as { closeAllConnections?: () => void }
+			).closeAllConnections?.();
+		}, DRAIN_GRACE_PERIOD_MS);
+
+		server.close(() => {
+			clearTimeout(graceTimer);
+			clearInterval(idlePoll);
+			resolve();
+		});
+
+		// Close connections as soon as they go idle (request finished, no
+		// keep-alive traffic) instead of waiting out the whole grace period.
+		closeIdle();
+		const idlePoll = setInterval(closeIdle, 250);
+	});
+}

@@ -31,7 +31,7 @@ export async function errorHandler(error: Error, c: Context) {
 		response.details = err.details;
 	}
 
-	// Chỉ expose stack khi KHÔNG phải operational error
+	// Only expose the stack trace when it is NOT an operational error
 	if (process.env.NODE_ENV === "development" && !isOperationalError(err)) {
 		response.stack = err.stack;
 	}
@@ -57,7 +57,7 @@ export function asyncHandler(fn: (c: Context) => Promise<Response | void>) {
  * Normalize all error into AppError
  */
 function normalizeError(error: unknown): AppError {
-	// AppError (đã chuẩn)
+	// AppError (already normalized)
 	if (error instanceof AppError) {
 		return error;
 	}
