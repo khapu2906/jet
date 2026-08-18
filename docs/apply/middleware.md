@@ -1,14 +1,6 @@
-# Middleware
+# Middleware — Reference
 
-All middleware is applied globally in `MainProcess.bootstrap()` in this order:
-
-1. Request ID
-2. CORS
-3. Security Headers
-4. Content Security Policy
-5. Logging
-6. Rate Limiting
-7. Error Handler (catch-all)
+For the fixed execution order and why it's fixed, see `docs/deeper/middleware.md`.
 
 ## Request ID
 
@@ -76,6 +68,16 @@ Key resolution order:
 3. Fallback → `anonymous`
 
 Uses `hono-rate-limiter` with draft-6 rate limit response headers.
+
+**Per-route overrides** (tighter than the app-wide default above):
+
+| Route prefix | Limit | Window | Why |
+|---|---|---|---|
+| `POST /auth/register` | 5 | 60s | Unauthenticated — no user identity to key by yet |
+| `POST /auth/login` | 10 | 60s | Unauthenticated — also has its own 5-failed-attempt lockout, see `docs/apply/auth.md` |
+
+Registered by `AuthModule.register()` via a container-resolved `RateLimitRegistry`
+(`RateLimitRegistryKey`) — see `docs/deeper/middleware.md` for how to add more.
 
 ## Error Handler
 

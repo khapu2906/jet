@@ -23,8 +23,7 @@ export function createAuthRoutes(container: Container): Hono {
 		async (c) => {
 			const body = c.req.valid("json");
 			const result = await service.register(body);
-			return c.json(success(RegisterResponseDto, result));
-			return c.json(result, 201);
+			return c.json(success(RegisterResponseDto, result), 201);
 		},
 	);
 

@@ -13,7 +13,9 @@ import { AuthModule } from "@/modules/auth/module";
 import { SystemModule } from "@/modules/system/module";
 
 import {
-	rateLimit,
+	createRateLimitMiddleware,
+	RateLimitRegistry,
+	RateLimitRegistryKey,
 	setupCors,
 	setupSecurityHeaders,
 	setupContentSecurityPolicy,
@@ -77,6 +79,13 @@ class HttpProcess extends BaseProcess<Hono> {
 		this._container.singleton(DbKey, () => db);
 		const eventBus = createEventBus();
 		this._container.singleton(EventBusKey, () => eventBus);
+		this._container.singleton(StorageKey, () => new LocalStorage(
+			storageConfig.local.dir,
+			storageConfig.local.baseUrl,
+			storageConfig.local.secret
+		), () => storageConfig.provider === "local")
+		const rateLimitRegistry = new RateLimitRegistry();
+		this._container.singleton(RateLimitRegistryKey, () => rateLimitRegistry);
 	}
 
 	protected async _initModules() {
@@ -102,7 +111,15 @@ class HttpProcess extends BaseProcess<Hono> {
 		this._app.use("*", setupSecurityHeaders());
 		this._app.use("*", setupContentSecurityPolicy());
 		this._app.use("*", setupLogging());
-		this._app.use("*", rateLimit);
+
+		// Built once here, after every module's register() has already run
+		// (see _initModules() above) — so all per-route overrides registered
+		// via RateLimitRegistry.register() are already in place before this
+		// middleware is constructed.
+		const rateLimitRegistry =
+			this._container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
+		this._app.use("*", createRateLimitMiddleware(rateLimitRegistry));
+
 		this._app.onError(errorHandler);
 	}
 

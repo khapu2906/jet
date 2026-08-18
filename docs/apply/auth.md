@@ -1,36 +1,7 @@
-# Authentication & Authorization
+# Authentication & Authorization — How To
 
-## Overview
-
-Auth flow is JWT-based with an internal provider (email/password). Designed to support multiple providers via the `identities` table.
-
-## Registration Flow
-
-```
-POST /auth/register
-  → Validate (email, password ≥8 chars, optional username)
-  → Hash password (scrypt + random salt)
-  → Atomic DB transaction:
-      1. INSERT users
-      2. INSERT auth_credentials
-      3. INSERT identities (links user ↔ credentials, provider="INTERNAL")
-  → Return JWT token
-```
-
-## Login Flow
-
-```
-POST /auth/login
-  → Validate (email, password)
-  → Find credentials by email
-  → Check account lock (lockedUntil > now → reject)
-  → Verify password (timing-safe comparison)
-  → On failure: increment failedLoginAttempts
-                if attempts ≥ 5 → lock for 15 minutes
-  → On success: reset failedLoginAttempts
-                generate JWT
-  → Return token + user info
-```
+For how the register/login flows and password hashing actually work internally, see
+`docs/deeper/auth.md`.
 
 ## JWT Payload
 
@@ -46,16 +17,6 @@ POST /auth/login
   exp: number
 }
 ```
-
-## Password Hashing
-
-Uses Node.js `crypto.scrypt` with random salt:
-
-```
-format: "${salt}:${hash}"  (hex-encoded, 16-byte salt, 64-byte key)
-```
-
-Verification uses `timingSafeEqual` to prevent timing attacks.
 
 ## RBAC
 

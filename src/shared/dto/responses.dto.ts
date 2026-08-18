@@ -27,8 +27,7 @@ export const ErrorResponseDto = v.object({
 
 export type ErrorResponse = v.InferOutput<typeof ErrorResponseDto>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createSuccessResponseDto = <T extends v.BaseSchema<any, any, any>>(
+export const createSuccessResponseDto = <T extends v.GenericSchema>(
 	dataSchema: T,
 ) => {
 	return v.object({
@@ -37,6 +36,7 @@ export const createSuccessResponseDto = <T extends v.BaseSchema<any, any, any>>(
 		timestamp: v.string(),
 	});
 };
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type SuccessResponse<T extends v.BaseSchema<any, any, any>> =
-	v.InferOutput<ReturnType<typeof createSuccessResponseDto<T>>>;
+
+export type SuccessResponse<T extends v.GenericSchema> = v.InferOutput<
+	ReturnType<typeof createSuccessResponseDto<T>>
+>;

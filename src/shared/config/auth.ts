@@ -1,7 +1,6 @@
 import * as v from "valibot";
-import { parseEnv } from "./env";
+import { nodeEnv, parseEnv } from "./env";
 import { Logger } from "@shared/logger";
-import { appConfig } from "./app";
 
 const AuthEnvSchema = v.object({
 	JWT_SECRET: v.optional(v.string(), "dev-secret"),
@@ -12,7 +11,7 @@ const AuthEnvSchema = v.object({
 
 const authEnv = parseEnv(AuthEnvSchema);
 
-if (appConfig.nodeEnv === "production" && authEnv.JWT_SECRET === "dev-secret") {
+if (nodeEnv === "production" && authEnv.JWT_SECRET === "dev-secret") {
 	throw new Error("FATAL: JWT_SECRET must be set in production");
 } else if (authEnv.JWT_SECRET === "dev-secret") {
 	Logger.warn("Using default JWT secret for development only");

@@ -19,26 +19,12 @@ export const PaginationMetaDto = v.object({
 export type PaginationMeta = v.InferOutput<typeof PaginationMetaDto>;
 
 // Generic Paginated DTO (flat)
-export const createPaginatedResponseDto = <
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	T extends v.BaseSchema<any, any, any>,
->(
+export const createPaginatedResponseDto = <T extends v.GenericSchema>(
 	itemSchema: T,
 ) =>
 	v.object({
 		data: v.array(itemSchema),
 		pagination: PaginationMetaDto,
-		message: v.optional(v.string()),
-		timestamp: v.string(),
-	});
-
-// Generic Success DTO
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createSuccessResponseDto = <T extends v.BaseSchema<any, any, any>>(
-	dataSchema: T,
-) =>
-	v.object({
-		data: dataSchema,
 		message: v.optional(v.string()),
 		timestamp: v.string(),
 	});

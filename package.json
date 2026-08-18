@@ -1,11 +1,11 @@
 {
 	"name": "jet",
-	"version": "0.1.11",
+	"version": "0.1.15",
 	"private": true,
 	"author": {
 		"name": "Kent Phung",
 		"email": "daikhanh9260@gmail.com",
-		"url": "https://www.facebook.com/d.kha.pu"
+		"url": "https://www.linkedin.com/in/kent-phung-9a5400220/"
 	},
 	"license": "MIT",
 	"scripts": {
@@ -27,7 +27,7 @@
 		"db:test": "node scripts/db/check.js"
 	},
 	"dependencies": {
-		"@event-bus-manager/core": "^0.1.12",
+		"@event-bus-manager/core": "^0.2.2",
 		"@fire-shield/core": "^3.1.1",
 		"@fire-shield/hono": "^3.1.1",
 		"@hono/node-server": "^2.1.0",
@@ -56,12 +56,12 @@
 		"@types/node": "^26.2.0",
 		"@types/node-schedule": "^2.1.8",
 		"@types/pg": "^8.21.0",
+		"drizzle-kit": "^0.31.10",
 		"eslint": "^10.8.1",
 		"javascript-obfuscator": "^5.5.0",
 		"tsc-alias": "^1.9.1",
 		"tsx": "^4.23.11",
 		"typescript": "^6.0.0",
-		"typescript-eslint": "^8.66.0",
-		"drizzle-kit": "^0.31.10"
+		"typescript-eslint": "^8.66.0"
 	}
 }
