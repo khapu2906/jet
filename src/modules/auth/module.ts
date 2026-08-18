@@ -6,6 +6,7 @@ import { AuthService } from "./service";
 import { createAuthRoutes } from "./routes";
 import { TokenIssuerKey, InternalAuthProvider } from "@/shared/auth/providers";
 import { DbKey } from "@shared/db";
+import { RateLimitRegistry, RateLimitRegistryKey } from "@shared/middleware";
 
 export class AuthModule extends Module {
 	readonly name = "auth";
@@ -25,6 +26,15 @@ export class AuthModule extends Module {
 					c.resolve(TokenIssuerKey),
 				),
 		);
+
+		// Registration/login are unauthenticated by nature (no user identity to
+		// key a rate limit by yet), so they get a tighter, IP-keyed limit than
+		// the app-wide default — otherwise a script can spam account creation
+		// well within the generic per-IP quota.
+		const rateLimitRegistry =
+			this.container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
+		rateLimitRegistry.register("/auth/register", { limit: 5, windowMs: 60_000 });
+		rateLimitRegistry.register("/auth/login", { limit: 10, windowMs: 60_000 });
 	}
 
 	bootstrap() {

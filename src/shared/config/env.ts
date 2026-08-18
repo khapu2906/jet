@@ -34,3 +34,17 @@ export function parseEnv<
 
 	return result.output;
 }
+
+/**
+ * NODE_ENV — parsed once here (not in app.ts) so every other config module
+ * (auth, database, security, logger...) can depend on just this one primitive
+ * instead of importing the whole `appConfig` object for an unrelated field.
+ */
+export const nodeEnv = parseEnv(
+	v.object({
+		NODE_ENV: v.optional(
+			v.picklist(["development", "production", "staging"]),
+			"development",
+		),
+	}),
+).NODE_ENV;

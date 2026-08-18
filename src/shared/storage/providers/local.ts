@@ -10,7 +10,7 @@ import { join, dirname } from "node:path";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import { Logger } from "@shared/logger";
-import type { IStorage, UploadOptions } from "../base";
+import type { IStorage, UploadOptions } from "@shared/storage/base";
 import { storageConfig } from "@/shared/config/storage";
 
 export class LocalStorage implements IStorage {

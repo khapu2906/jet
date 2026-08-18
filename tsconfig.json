@@ -15,7 +15,6 @@
 			"@/*": ["src/*"],
 			"@modules/*": ["src/modules/*"],
 			"@shared/*": ["src/shared/*"],
-			"@config/*": ["src/shared/config/*"],
 		},
 
 		"jsx": "react-jsx",

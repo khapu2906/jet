@@ -81,7 +81,7 @@ export function setupSecurityHeaders() {
 export function setupCors() {
 	return cors({
 		origin: (origin) => {
-			const allowedOrigins = config.corsOrigins;
+			const allowedOrigins = config.security.corsOrigins;
 
 			// SECURITY FIX: Reject wildcard with credentials
 			// This prevents CSRF attacks with authenticated requests
@@ -166,7 +166,7 @@ export function setupLogging() {
 		const requestId = c.get("requestId") || "unknown";
 
 		// Log incoming request
-		if (config.logLevel === "debug") {
+		if (config.logger.level === "debug") {
 			Logger.debug(`[${requestId}] → ${c.req.method} ${c.req.path}`);
 		}
 
@@ -187,7 +187,7 @@ export function setupLogging() {
 				Logger.warn(logMessage);
 				break;
 			default:
-				if (config.logLevel === "debug" || config.logLevel === "info") {
+				if (config.logger.level === "debug" || config.logger.level === "info") {
 					Logger.info(logMessage);
 				}
 		}

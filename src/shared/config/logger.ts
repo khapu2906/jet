@@ -1,7 +1,6 @@
 import * as v from "valibot";
 import type { LogConfig } from "meo-meo-logger";
-import { parseEnv } from "./env";
-import { appConfig } from "./app";
+import { nodeEnv, parseEnv } from "./env";
 
 const LoggerEnvSchema = v.object({
 	LOG_LEVEL: v.optional(v.picklist(["debug", "info", "warn", "error"]), "info"),
@@ -14,9 +13,7 @@ const loggerEnv = parseEnv(LoggerEnvSchema);
 export const loggerConfig: LogConfig = {
 	level: loggerEnv.LOG_LEVEL as LogConfig["level"],
 	mode: (loggerEnv.LOG_MODE ??
-		(appConfig.nodeEnv === "production"
-			? "json"
-			: "pretty")) as LogConfig["mode"],
+		(nodeEnv === "production" ? "json" : "pretty")) as LogConfig["mode"],
 	serviceName: loggerEnv.SERVICE_NAME,
 	transports: [],
 };

@@ -2,8 +2,8 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema/index";
 
-import { config } from "./../config";
-import { Logger } from "./../logger";
+import { config } from "@shared/config";
+import { Logger } from "@shared/logger";
 
 // Database connection
 export const connectionString = `postgresql://${config.database.user || "postgres"}:${

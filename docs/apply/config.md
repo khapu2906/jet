@@ -64,14 +64,15 @@ All config is loaded from environment variables at startup. Invalid values cause
 ## Event Bus
 
 | Env Var                              | Default     | Description                                 |
-| ------------------------------------ | ----------- | ------------------------------------------- |
+| ------------------------------------ | ----------- | -------------------------------------------- |
 | `EVENT_BUS_TYPE`                     | `memory`    | Only `memory` supported                     |
 | `EVENT_BUS_ROLE`                     | `both`      | `both` | `publisher` | `consumer`           |
 | `EVENT_BUS_WORKERS`                  | `*`         | Worker filter (`*` or comma-separated list) |
 | `EVENT_BUS_EVENTS`                   | `*`         | Event filter (`*` or comma-separated list)  |
 | `EVENT_BUS_DEBUG`                    | `false`     | Enable debug logs                           |
-| `EVENT_BUS_MAX_RETRIES`              | `3`         | Retry count on failure                      |
-| `EVENT_BUS_RETRY_DELAY`              | `5000`      | Retry delay (ms)                            |
+| `EVENT_BUS_CONCURRENCY`              | `1`         | Bus-level default handler concurrency (per-handler `EventHandler.concurrency` overrides it) |
+| `EVENT_BUS_MAX_RETRIES`              | `3`         | Retry count on failure — see note below     |
+| `EVENT_BUS_RETRY_DELAY`              | `5000`      | Retry delay (ms) — see note below           |
 | `REDIS_HOST`                         | `localhost` | Redis host                                  |
 | `REDIS_PORT`                         | `6379`      | Redis port                                  |
 | `EVENT_BUS_EVENT_TTL`                | `24 hours`  | Event expiration                            |
@@ -80,8 +81,11 @@ All config is loaded from environment variables at startup. Invalid values cause
 
 **Notes:**
 
+* `EVENT_BUS_MAX_RETRIES`/`EVENT_BUS_RETRY_DELAY` are read into config and resolved per-handler,
+  but only take effect once a real queue-backed transport (BullMQ/PgBoss) is installed — the
+  `memory` transport still runs every handler once, no retry. See `docs/deeper/worker.md`.
 * `CLUSTER_ENABLED` exists in runtime but is not validated in schema
-* Only `memory` transport is currently supported
+* Only `memory` transport is currently supported — see `docs/deeper/worker.md` for what this means in practice
 
 ---
 
@@ -96,7 +100,7 @@ All config is loaded from environment variables at startup. Invalid values cause
 ## Storage
 
 | Env Var                   | Default                         | Description                                         |
-| ------------------------- | ------------------------------- | --------------------------------------------------- |
+| ------------------------- | -------------------------------- | ---------------------------------------------------- |
 | `STORAGE_PROVIDER`        | `local`                         | Storage provider                                    |
 | `STORAGE_LOCAL_DIR`       | `.tmp/storage`                  | Local storage directory (resolved to absolute path) |
 | `STORAGE_LOCAL_BASE_URL`  | `http://localhost:2906/storage` | Base URL                                            |

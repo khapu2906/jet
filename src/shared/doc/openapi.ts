@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { openAPIRouteHandler } from "hono-openapi";
 import { swaggerUI } from "@hono/swagger-ui";
-import { config } from "../config";
+import { config } from "@shared/config";
 
 // Create a function that returns the OpenAPI route handler
 export const createOpenAPISpec = (app: Hono) => {
@@ -9,11 +9,11 @@ export const createOpenAPISpec = (app: Hono) => {
 		documentation: {
 			openapi: "3.1.0",
 			info: {
-				title: "Jet Framework",
-				version: "1.0.0",
+				title: config.appName,
+				version: config.appVersion,
 				description: "",
 				contact: {
-					name: "Jet",
+					name: config.appName,
 				},
 			},
 			servers: [
@@ -47,5 +47,5 @@ export const createOpenAPISpec = (app: Hono) => {
 // Swagger UI route handler
 export const swaggerUIRoute = swaggerUI({
 	url: "/docs/json",
-	title: "Jet Framework",
+	title: config.appName,
 });

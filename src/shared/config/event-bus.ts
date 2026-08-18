@@ -13,6 +13,7 @@ const EventBusEnvSchema = v.object({
 	EVENT_BUS_DEBUG: v.optional(v.string(), "false"),
 	EVENT_BUS_MAX_RETRIES: envNumber(3),
 	EVENT_BUS_RETRY_DELAY: envNumber(5000),
+	EVENT_BUS_CONCURRENCY: envNumber(1),
 	REDIS_HOST: v.optional(v.string(), "localhost"),
 	REDIS_PORT: envNumber(6379),
 });
@@ -39,7 +40,7 @@ export const eventBusConfig: EngMasEventBusConfig = {
 	role: env.EVENT_BUS_ROLE,
 	workers: resolveList(env.EVENT_BUS_WORKERS),
 	events: resolveList(env.EVENT_BUS_EVENTS),
-	handlers: "*",
+	concurrency: env.EVENT_BUS_CONCURRENCY,
 	debug: env.EVENT_BUS_DEBUG === "true",
 	async: {
 		maxRetries: env.EVENT_BUS_MAX_RETRIES,

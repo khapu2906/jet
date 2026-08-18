@@ -1,35 +1,6 @@
+# Architecture — Under the Hood
 
-# Architecture Overview
-
-## Multi-Process Design
-
-The application supports three process types, controlled by the `PROCESS_TYPE` environment variable:
-
-```
-PROCESS_TYPE=http         # HTTP API server (default)
-PROCESS_TYPE=worker      # Background job consumer
-PROCESS_TYPE=scheduler   # Scheduled job trigger service
-```
-
-All processes share the same module system and dependency injection container, but initialize different runtime infrastructure depending on their role.
-
----
-
-## Worker Scaling
-
-To scale background processing, run multiple `worker` instances. Jobs are distributed across all workers to ensure horizontal scalability.
-
-```yaml
-worker:
-  environment:
-    PROCESS_TYPE: worker
-  deploy:
-    replicas: 4
-```
-
-> Note: Job distribution behavior depends on the underlying queue system (e.g. PgBoss / Redis queue). Ensure your job system supports concurrency and deduplication.
-
----
+For `PROCESS_TYPE` values, worker scaling config, and directory layout, see `docs/apply/architecture.md`.
 
 ## Application Lifecycle
 
@@ -49,7 +20,7 @@ Each process type is responsible for only one concern:
 * Worker → job execution
 * Scheduler → job triggering
 
----
+See `docs/deeper/http.md`, `docs/deeper/worker.md`, `docs/deeper/scheduler.md` for each process's specific bootstrap/shutdown sequence.
 
 ## Module System
 
@@ -63,9 +34,7 @@ class AuthModule extends Module {
 }
 ```
 
-Modules declare dependencies via `getImportModules()`. The framework resolves them automatically using a hierarchical container model (parent → child containers).
-
----
+Modules declare dependencies via `getImportModules()`. The framework resolves them automatically using a hierarchical container model (parent → child containers). See `docs/deeper/modules.md` for the full lifecycle and cross-module access model.
 
 ## Dependency Injection
 
@@ -80,8 +49,6 @@ Each module has its own child container inheriting from the root container, enab
 * Shared global services (DB, logger, event bus)
 * Isolated module boundaries
 * Cross-module resolution when needed
-
----
 
 ## Request Flow (API Process)
 
@@ -102,9 +69,9 @@ HTTP Request
   → Error handler (if exception occurs)
 ```
 
----
+See `docs/deeper/middleware.md` for why this specific order was chosen.
 
-## 🔄 System Flow (End-to-End Architecture)
+## System Flow (End-to-End Architecture)
 
 ### API Request Flow
 
@@ -113,9 +80,9 @@ flowchart TD
     %% Nodes Definition
     A[Client Request] --> B[API Process]
     B --> C
-    
+
     %% Middleware Subgraph
-    ≈[Middleware Stack]
+    subgraph C[Middleware Stack]
         direction TB
         C1[Request ID] --> C2[CORS]
         C2 --> C3[Security Headers]
@@ -140,13 +107,15 @@ flowchart TD
     %% Response Flow
     E --> M[HTTP Response]
 
-    %% Styling 
+    %% Styling
     style C fill:#f9f9f9,stroke:#333,stroke-width:1px,stroke-dasharray: 5 5
     style M fill:#d4edda,stroke:#28a745,stroke-width:2px
     style A fill:#cce5ff,stroke:#004085,stroke-width:2px
 ```
 
----
+> The `Event Bus → Worker Process` link is the intended end-state architecture. With the
+> current `EVENT_BUS_TYPE=memory` transport, this link does not actually cross process
+> boundaries yet — see `docs/deeper/worker.md`.
 
 ### Worker Execution Flow
 
@@ -181,7 +150,9 @@ flowchart TD
     style K fill:#f8d7da,stroke:#dc3545,stroke-width:1px
 ```
 
----
+> This diagram describes the intended shape of job execution (retry, dead-letter) once a real
+> queue backend is wired in — the current `InMemoryEventBus` has no built-in retry/dead-letter
+> mechanism of its own.
 
 ### Scheduler Flow
 
@@ -197,45 +168,10 @@ flowchart TD
     F --> G[Worker Process]
 ```
 
----
-
-## Directory Layout
-
-```
-src/
-├── index.ts                   # Entry point: selects process type
-├── processes/
-│   ├── http.ts                # HTTP API server process
-│   ├── worker.ts             # Background job worker process
-│   └── scheduler.ts          # Scheduled job process
-│
-├── modules/
-│   ├── auth/                 # Authentication module
-│   ├── user-scheduler/      # Scheduler-based user jobs
-│   └── system/              # Health check / system utilities
-│
-└── shared/
-    ├── base/
-    │   ├── modules.ts        # Base Module abstraction
-    │   └── processes.ts      # BaseProcess + Runner abstraction
-    │
-    ├── factory.ts           # AppFactory / container bootstrap
-    ├── auth/                # JWT, RBAC, auth middleware
-    ├── config/              # Environment configuration
-    ├── db/                  # Drizzle ORM instance + schema
-    ├── doc/                 # API documentation (Swagger/OpenAPI)
-    ├── dto/                 # Shared DTO definitions
-    ├── event-manager/       # Event bus abstraction
-    ├── middleware/          # Global middleware stack
-    ├── errors/              # Error types + handlers
-    ├── logger/              # Logging system
-    ├── storage/             # Storage abstraction layer
-    ├── scheduler/           # Scheduler abstraction layer
-    ├── utils/               # Shared utilities
-    └── factory.ts           # Global app factory (legacy/alias)
-```
-
----
+> In the current codebase, `SchedulerManager.register()` runs the job's `handler` directly (see
+> `docs/apply/scheduler.md`) rather than publishing an event for a worker to pick up — the
+> `Event Bus → Worker Process` hand-off shown here is the intended pattern for jobs that should
+> do their actual work in the worker process, not something every scheduled job must do.
 
 ## Key Design Principles
 

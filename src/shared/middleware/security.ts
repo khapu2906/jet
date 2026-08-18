@@ -1,9 +1,6 @@
 import type { Context, MiddlewareHandler, Next } from "hono";
 import { config } from "@shared/config";
-import {
-	rateLimitRegistry,
-	type RateLimitDefaults,
-} from "./rate-limit-registry";
+import type { RateLimitDefaults, RateLimitRegistry } from "./rate-limit-registry";
 
 function parseTimeWindow(window: string): number {
 	const match = window.match(/^(\d+)([smh])$/);
@@ -57,13 +54,19 @@ const defaultKeyGenerator = (c: Context): string => {
 };
 
 const rateLimitDefaults: RateLimitDefaults = {
-	windowMs: parseTimeWindow(config.rateLimitWindow),
-	limit: config.rateLimitMax,
+	windowMs: parseTimeWindow(config.security.rateLimitWindow),
+	limit: config.security.rateLimitMax,
 	keyGenerator: defaultKeyGenerator,
 };
 
 /**
- * Rate limiting middleware backed by hono-rate-limiter.
+ * Builds the global rate limiting middleware from a container-managed
+ * `RateLimitRegistry`. Call once, from `HttpProcess._setupMiddleware()`,
+ * after all modules have finished registering their per-route overrides
+ * (during `_initModules()` → module `register()`) — this is what triggers
+ * `registry.build()`, constructing every limiter instance up front so the
+ * request path only ever does a pure lookup, never lazy construction.
+ *
  * Controlled by RATE_LIMIT_ENABLED / RATE_LIMIT_MAX / RATE_LIMIT_WINDOW env vars.
  *
  * Default key resolution order:
@@ -72,13 +75,21 @@ const rateLimitDefaults: RateLimitDefaults = {
  *   3. Fallback        → 'anonymous' (all unknown clients share one bucket)
  *
  * Modules can register a per-route override (different limit/window/keyGenerator,
- * or `{ enabled: false }` to bypass entirely) via `rateLimitRegistry.register(prefix, override)`.
- * The longest matching path prefix wins; unmatched paths fall back to the defaults above.
+ * or `{ enabled: false }` to bypass entirely) via
+ * `container.resolve<RateLimitRegistry>(RateLimitRegistryKey).register(prefix, override)`
+ * during their own `register()`. The longest matching path prefix wins;
+ * unmatched paths fall back to the defaults above.
  *
  * NOTE: Uses the default in-memory store. For multi-process / clustered deployments
  * replace with a shared store (e.g. hono-rate-limiter Redis adapter).
  */
-export const rateLimit: MiddlewareHandler = config.rateLimitEnabled
-	? (c: Context, next: Next) =>
-			rateLimitRegistry.resolve(c.req.path, rateLimitDefaults)(c, next)
-	: (_c: Context, next: Next) => next();
+export function createRateLimitMiddleware(
+	registry: RateLimitRegistry,
+): MiddlewareHandler {
+	if (!config.security.rateLimitEnabled) {
+		return (_c: Context, next: Next) => next();
+	}
+
+	registry.build(rateLimitDefaults);
+	return (c: Context, next: Next) => registry.resolve(c.req.path)(c, next);
+}

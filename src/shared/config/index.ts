@@ -1,14 +1,17 @@
 import { appConfig } from "./app";
 import { dbConfig } from "./database";
 import { authConfig } from "./auth";
+import { securityConfig } from "./security";
+import { loggerConfig } from "./logger";
 
-export { loggerConfig } from "./logger";
-export { appConfig, dbConfig, authConfig };
+export { appConfig, dbConfig, authConfig, securityConfig, loggerConfig };
 
 export const config = {
 	...appConfig,
 	database: dbConfig,
 	auth: authConfig,
+	security: securityConfig,
+	logger: loggerConfig,
 };
 
 export type Config = typeof config;

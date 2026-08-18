@@ -1,6 +1,6 @@
 import { toJsonSchema } from "@valibot/to-json-schema";
 import type { OpenAPIV3_1 } from "openapi-types";
-import type { BaseSchema } from "valibot";
+import type { GenericSchema } from "valibot";
 
 /**
  * Convert Valibot schema → OpenAPI SchemaObject.
@@ -17,8 +17,7 @@ import type { BaseSchema } from "valibot";
  * already a dependency) converts synchronously and directly, with no dependency on which
  * middleware/branch hono-openapi's spec generator happens to take.
  */
- // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function toOpenAPISchema<T extends BaseSchema<any, any, any>>(
+export function toOpenAPISchema<T extends GenericSchema>(
 	schema: T,
 ): OpenAPIV3_1.SchemaObject {
 	const { $schema: _$schema, ...jsonSchema } = toJsonSchema(schema);
