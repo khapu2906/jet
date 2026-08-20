@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { validator } from "hono-openapi";
 import type { Container } from "@khapu2906/treasure-chest";
-import { AuthServiceKey, type IAuthService } from "./contracts";
+import { AuthServiceKey, type IAuthService } from "./contracts/service";
 import {
 	LoginDto,
 	LoginResponseDto,

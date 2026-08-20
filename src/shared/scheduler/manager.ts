@@ -1,16 +1,8 @@
 import schedule, { Job } from "node-schedule";
 import { Logger } from "@shared/logger";
+import type { ISchedulerManager, JobDefinition } from "./contracts";
 
-export const SchedulerKey = "SchedulerManager";
-
-export interface JobDefinition {
-	name: string;
-	cron: string; // e.g. "0 * * * *"
-	handler: () => Promise<void> | void;
-	runOnStart?: boolean; // chạy ngay khi khởi động
-}
-
-export class SchedulerManager {
+export class SchedulerManager implements ISchedulerManager {
 	private _jobs = new Map<string, Job>();
 
 	constructor() {}

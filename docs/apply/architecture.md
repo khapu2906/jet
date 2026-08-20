@@ -14,6 +14,11 @@ PROCESS_TYPE=scheduler   # Scheduled job trigger service
 
 All processes share the same module system and dependency injection container, but initialize different runtime infrastructure depending on their role. See `docs/apply/http.md`, `docs/apply/worker.md`, `docs/apply/scheduler.md` for each.
 
+## Architecture Enforcement
+
+Module folder shape and dependency direction (`docs/llm/code-pattern.md` §1) are checked, not
+just documented — see `docs/apply/archsafe.md`.
+
 ## Worker Scaling
 
 To scale background processing, run multiple `worker` instances. Jobs are distributed across all workers to ensure horizontal scalability.
@@ -39,9 +44,9 @@ src/
 │   └── scheduler.ts          # Scheduled job process
 │
 ├── modules/
-│   ├── auth/                 # Authentication module
-│   ├── user-scheduler/      # Scheduler-based user jobs
-│   └── system/              # Health check / system utilities
+│   ├── auth/                 # Authentication module (see docs/llm/code-pattern.md §1 for its shape)
+│   ├── demo-scheduler/       # Example cron job registered with the scheduler process
+│   └── system/                # Health check / system utilities
 │
 └── shared/
     ├── base/

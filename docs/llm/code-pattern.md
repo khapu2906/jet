@@ -15,7 +15,9 @@ file with exactly 1 responsibility. This is exactly how `src/modules/auth/` is b
 
 ```
 modules/<name>/
-├── contracts.ts   # DI keys (Symbol) + interface IXRepository / IXService — the contract between layers
+├── contracts/
+│   ├── repository.ts  # AuthRepositoryKey (Symbol) + IAuthRepository interface — no implementation
+│   └── service.ts     # AuthServiceKey (Symbol) + IAuthService interface — no implementation
 ├── model.ts       # Domain model — plain TS class, carries business behavior (see §2)
 ├── dto.ts         # Valibot schema for request/response — validates + auto-infers the TS type
 ├── repository.ts  # Data access — implements IXRepository, works directly with Drizzle, translates DB rows ↔ domain model
@@ -25,6 +27,12 @@ modules/<name>/
 └── module.ts      # Wiring: register() binds DI, bootstrap() mounts routes, getImportModules() declares dependencies on other modules
 ```
 
+**Why the interface is a separate file from its implementation** (`contracts/repository.ts` vs.
+`repository.ts`, not one `IXRepository` declared inside `repository.ts`): a consumer that only
+imports `contracts/repository.ts` physically cannot reach the concrete class — there's no
+`XRepository` export in that file to accidentally autocomplete/import. This is enforced by
+ArchSafe, not just convention — see §8.
+
 **Optional extra files**: route-level helpers that don't belong in `service.ts` (business logic)
 or `model.ts` (domain behavior) get their own single-purpose file, named for what they do — not
 a catch-all `utils.ts` grab-bag. The one existing precedent: `auth/utils.ts` — password hashing
@@ -32,9 +40,13 @@ only, a single cohesive concern (despite the generic name, it isn't a dumping gr
 a file like this once `routes.ts`/`service.ts` actually accumulates a helper of that kind —
 don't create it empty ahead of time.
 
-**One-way dependency principle**: `routes.ts` → `service.ts` → `repository.ts` → DB. There is no
-reverse direction; `routes.ts` must not call `repository.ts` directly; `repository.ts` must know
-nothing about `service.ts`.
+**One-way dependency principle**: `routes.ts` → `contracts/service.ts` → `service.ts` →
+`contracts/repository.ts` → `repository.ts` → DB. `routes.ts` may depend on `contracts/service.ts`
+but not on `service.ts` (the concrete class) or on either repository file at all;
+`service.ts` may depend on `contracts/repository.ts` but not on `repository.ts` (the concrete
+class). There is no reverse direction anywhere in this chain. `module.ts` is the one place
+allowed to import every concrete class, since it's the only file that actually constructs them
+to wire the DI container.
 
 ## 2. Three Layers of Data Representation: Schema (ORM) ≠ Domain Model ≠ DTO
 
@@ -209,5 +221,21 @@ one `tsconfig.json` exists.
 If/when testing is set up for this project, keep tests out of `src/` (a separate `tests/` tree
 mirroring `src/`'s structure is the intended shape, importing via the `@modules/*`/`@shared/*`
 path aliases already configured in `tsconfig.json` — never a relative import like `./service`),
-and prefer mocking the `IXRepository`/`IXService` interfaces from each module's `contracts.ts`
-over mocking modules directly, consistent with the DI principle in §5.
+and prefer mocking the `IXRepository`/`IXService` interfaces from each module's
+`contracts/repository.ts`/`contracts/service.ts` over mocking modules directly, consistent with
+the DI principle in §5.
+
+## 8. Architecture Enforcement (ArchSafe)
+
+The folder shape and one-way dependency principle in §1 aren't just written convention — they're
+machine-checked. `archsafe.config.mts` (repo root) encodes them as rules; `npx archsafe --config
+archsafe.config.mts` fails with a specific violation message if new code breaks one (e.g. a route
+importing a repository directly, or a module reaching into another module's internals instead of
+its declared `contracts/service.ts`). See `docs/apply/archsafe.md` for how to run it and add a
+new module correctly, `docs/deeper/archsafe.md` for how the rule engine actually works and its
+known blind spots (it does not catch a bare `new ConcreteClass()` that never touches a type).
+
+`CLAUDE.md` (repo root) is generated from this same config via `npx archsafe agent-rules
+--config archsafe.config.mts --write CLAUDE.md` — it's the plain-English version of the same
+rules, always in sync with what's actually enforced. Read it first; this file is about *why* and
+*how to extend* the conventions it lists.

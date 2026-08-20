@@ -1,13 +1,9 @@
 import { USER_ROLES } from "@shared/auth/rbac";
 import { ConflictError, UnauthorizedError } from "@shared/errors";
 import type { TokenIssuer } from "@shared/auth/providers/base";
-import type { IAuthRepository, IAuthService } from "./contracts";
-import type {
-	LoginResponse,
-	LoginType,
-	RegisterResponse,
-	RegisterType,
-} from "./dto";
+import type { IAuthRepository } from "./contracts/repository";
+import type { RegisterResponse, RegisterType, LoginResponse, LoginType } from "./dto";
+import type { IAuthService } from "./contracts/service";
 import { verifyPassword } from "./utils";
 
 export class AuthService implements IAuthService {

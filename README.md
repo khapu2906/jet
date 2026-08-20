@@ -64,6 +64,8 @@ Server runs on `http://localhost:2906` by default.
 | `npm typecheck` | Type check without emitting |
 | `npm lint` | Run ESLint |
 | `npm lint:fix` | Auto-fix lint issues |
+| `npm arch:check` | Enforce module/layer boundaries with [ArchSafe](https://archsafe.vercel.app/) (`archsafe.config.mts`) |
+| `npm arch:baseline` | Snapshot current architecture violations to adopt ArchSafe gradually |
 
 ### Database
 

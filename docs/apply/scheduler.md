@@ -6,7 +6,10 @@ For the bootstrap sequence, scaling caveats, and graceful shutdown internals, se
 
 ## SchedulerManager
 
-Resolved from the container via `SchedulerKey` (`@shared/scheduler/manager`).
+Resolved from the container via `SchedulerKey`, typed as `ISchedulerManager` — both from
+`@shared/scheduler/contracts` (the concrete `SchedulerManager` class lives in
+`@shared/scheduler/manager`, but nothing outside that file should import it directly; resolve
+the interface, matching every other cross-cutting service in this codebase).
 
 | Method | Description |
 |---|---|
@@ -31,7 +34,7 @@ export class DemoSchedulerModule extends Module {
   readonly name = "demo-scheduler";
 
   register(): void {
-    const scheduler = this.container.resolve<SchedulerManager>(SchedulerKey);
+    const scheduler = this.container.resolve<ISchedulerManager>(SchedulerKey);
 
     scheduler.register({
       name: "demo-say-hello-every-minute",

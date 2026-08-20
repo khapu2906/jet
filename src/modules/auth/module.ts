@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { Module } from "@shared/base/modules";
-import { AuthRepositoryKey, AuthServiceKey } from "./contracts";
 import { AuthRepository } from "./repository";
+import { AuthRepositoryKey } from "./contracts/repository";
 import { AuthService } from "./service";
+import { AuthServiceKey } from "./contracts/service";
 import { createAuthRoutes } from "./routes";
 import { TokenIssuerKey, InternalAuthProvider } from "@/shared/auth/providers";
 import { DbKey } from "@shared/db";
