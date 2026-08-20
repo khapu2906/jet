@@ -3,7 +3,8 @@ import type { ModuleConstructor } from "@/shared/base/modules";
 import { Logger, LoggerUI } from "@shared/logger";
 import { AppFactory } from "@shared/factory";
 import { createEventBus, EventBus, EventBusKey } from "@/shared/event-manager";
-import { SchedulerKey, SchedulerManager } from "@/shared/scheduler/manager";
+import { SchedulerManager } from "@/shared/scheduler/manager";
+import { SchedulerKey, type ISchedulerManager } from "@/shared/scheduler/contracts";
 import { DemoSchedulerModule } from "@/modules/demo-scheduler/module";
 
 class SchedulerProcess extends BaseProcess<void> {
@@ -17,7 +18,7 @@ class SchedulerProcess extends BaseProcess<void> {
 		await eventBus.start();
 
 		const scheduler =
-			AppFactory.rootContainer.resolve<SchedulerManager>(SchedulerKey);
+			AppFactory.rootContainer.resolve<ISchedulerManager>(SchedulerKey);
 		const jobs = scheduler.listJobs();
 
 		Logger.info("Scheduler process started");
@@ -30,7 +31,7 @@ class SchedulerProcess extends BaseProcess<void> {
 	async cleanup(): Promise<void> {
 		try {
 			const scheduler =
-				AppFactory.rootContainer.resolve<SchedulerManager>(SchedulerKey);
+				AppFactory.rootContainer.resolve<ISchedulerManager>(SchedulerKey);
 			await scheduler.stop();
 
 			const eventBus = this._container.resolve<EventBus>(EventBusKey);

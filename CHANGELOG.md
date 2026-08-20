@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 prior to 0.1.11 predate this file and aren't documented in detail here — see `git log` for
 that history.
 
+## [0.1.16] - 2026-08-19
+
+### Added
+- [ArchSafe](https://archsafe.vercel.app/) (`@archsafe/cli`, `@archsafe/core`) — enforces the
+  module/layer boundaries already described in `docs/llm/code-pattern.md` §1 as actual, checked
+  rules instead of only documentation:
+  - One-way layering inside each feature module (`auth`, `demo-scheduler`, `system`):
+    `routes.ts` → `service.ts` → `repository.ts`, no reverse direction.
+  - Only `repository.ts` may import `pg`/`drizzle-orm` directly, **or** reach `@shared/db`
+    (the app's own DB wrapper) at all — `routes.ts`/`service.ts` are blocked from both, closing
+    a gap where blocking just the raw driver packages would still let a route bypass the
+    repository by importing `@shared/db` directly.
+  - Config domains (`src/shared/config/*.ts`) never import each other — each may depend only
+    on `env.ts`. Catches a regression of the exact bug fixed in 0.1.15 (`security.ts` duplicating
+    env parsing that `app.ts` also did; every domain importing the whole `appConfig` object just
+    to read `.nodeEnv`).
+  - Feature modules cannot import each other directly (cross-module communication must go
+    through `@shared/event-manager`); `shared/**` and `processes/**` never depend back on a
+    feature module; no dependency cycles between modules.
+  - Only `module.ts` is a module's public entry point — every other file in a module folder is
+    internal.
+  - `npm run arch:check` runs the check (see `archsafe.config.mts`); `npm run arch:baseline`
+    snapshots current violations to adopt it gradually on an existing codebase. Run against
+    this repo today: 76 files / 110 symbols / 167 edges, zero violations — no baseline needed.
+  - Note on coverage: ArchSafe tracks type-level references and constructor-injected
+    dependencies (matching this codebase's DI-heavy style), not arbitrary runtime value usage —
+    e.g. a plain `import { db } from "@shared/db"; db.query(...)` inside a function body with no
+    type annotation involved isn't tracked as a dependency edge, only a typed reference (a
+    constructor parameter, a variable annotation, etc.) is. Verified by deliberately introducing
+    both kinds of violations during setup — the constructor-injection form was caught
+    immediately, the untyped form was not.
+
 ## [0.1.15] - 2026-08-18
 
 ### Added

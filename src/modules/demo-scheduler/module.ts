@@ -1,4 +1,4 @@
-import { SchedulerKey, SchedulerManager } from "@/shared/scheduler/manager";
+import { SchedulerKey, type ISchedulerManager } from "@/shared/scheduler/contracts";
 import { Module } from "@shared/base/modules";
 import { IDemoJob, DemoJobKey } from "./contracts";
 import { DemoJob } from "./job";
@@ -7,7 +7,7 @@ export class DemoSchedulerModule extends Module {
 	readonly name = "demo-scheduler";
 
 	register(): void {
-		const scheduler = this.container.resolve<SchedulerManager>(SchedulerKey);
+		const scheduler = this.container.resolve<ISchedulerManager>(SchedulerKey);
 
 		this.container.singleton(DemoJobKey, () => new DemoJob());
 

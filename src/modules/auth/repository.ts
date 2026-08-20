@@ -2,10 +2,10 @@ import { eq, sql } from "drizzle-orm";
 import type { Database } from "@shared/db";
 import { users, identities, authCredentials } from "@shared/db/schema";
 import { PROVIDERS } from "@shared/db/schema/indentities";
-import type { IAuthRepository } from "./contracts";
 import { hashPassword } from "./utils";
 import { AuthCredential, AuthIdentity } from "./model";
 import type { RegisterResponse, RegisterType } from "./dto";
+import type { IAuthRepository } from "./contracts/repository";
 
 export class AuthRepository implements IAuthRepository {
 	constructor(private readonly _access: Database) {}

@@ -1,6 +1,6 @@
 {
 	"name": "jet",
-	"version": "0.1.15",
+	"version": "0.1.16",
 	"private": true,
 	"author": {
 		"name": "Kent Phung",
@@ -17,6 +17,8 @@
 		"lint": "eslint src --ext .ts,.tsx",
 		"lint:fix": "eslint src --ext .ts,.tsx --fix",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"arch:check": "archsafe --config archsafe.config.mts",
+		"arch:baseline": "archsafe baseline --config archsafe.config.mts",
 		"db:setup": "node scripts/db-setup.js",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
@@ -51,6 +53,8 @@
 		"valibot": "^1.4.2"
 	},
 	"devDependencies": {
+		"@archsafe/cli": "^0.1.0",
+		"@archsafe/core": "^0.1.0",
 		"@eslint/js": "^10.0.1",
 		"@types/jsonwebtoken": "^9.0.10",
 		"@types/node": "^26.2.0",

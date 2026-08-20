@@ -14,6 +14,13 @@ For the `SchedulerManager` API and how to define a job, see `docs/apply/schedule
 
 `_modules` currently includes only `DemoSchedulerModule` (a working example).
 
+`SchedulerKey`/`ISchedulerManager` live in `shared/scheduler/contracts.ts`, separate from the
+concrete `SchedulerManager` class in `manager.ts` — the same contract-vs-implementation split
+used inside feature modules (see `docs/llm/code-pattern.md` §1), applied here to a shared
+service instead of a module. `_registerCoreDependencies()` still constructs the concrete class
+(`new SchedulerManager()`) since that's the one place actually allowed to, but every consumer
+resolves the interface.
+
 ## Overlapping runs are not prevented
 
 `node-schedule`'s `Job` tracks how many invocations of itself are currently running
