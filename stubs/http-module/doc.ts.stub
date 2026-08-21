@@ -1,0 +1,17 @@
+import { createSuccessResponseDto } from "@shared/dto";
+import { Create__Name__Dto, __Name__ResponseDto, __Name__ListResponseDto } from "./dto";
+
+export const docs = {
+	create: {
+		tag: "__Name__",
+		description: "Create a new __name__",
+		request: Create__Name__Dto,
+		response: createSuccessResponseDto(__Name__ResponseDto),
+		status: 201,
+	},
+	list: {
+		tag: "__Name__",
+		description: "List __name__s",
+		response: createSuccessResponseDto(__Name__ListResponseDto),
+	},
+};

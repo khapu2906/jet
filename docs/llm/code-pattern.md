@@ -16,8 +16,9 @@ file with exactly 1 responsibility. This is exactly how `src/modules/auth/` is b
 ```
 modules/<name>/
 ├── contracts/
-│   ├── repository.ts  # AuthRepositoryKey (Symbol) + IAuthRepository interface — no implementation
-│   └── service.ts     # AuthServiceKey (Symbol) + IAuthService interface — no implementation
+│   ├── index.ts        # Barrel — re-exports ONLY the contracts other modules may depend on
+│   ├── repository.ts   # AuthRepositoryKey (Symbol) + IAuthRepository interface — no implementation
+│   └── service.ts      # AuthServiceKey (Symbol) + IAuthService interface — no implementation
 ├── model.ts       # Domain model — plain TS class, carries business behavior (see §2)
 ├── dto.ts         # Valibot schema for request/response — validates + auto-infers the TS type
 ├── repository.ts  # Data access — implements IXRepository, works directly with Drizzle, translates DB rows ↔ domain model
@@ -32,6 +33,15 @@ modules/<name>/
 imports `contracts/repository.ts` physically cannot reach the concrete class — there's no
 `XRepository` export in that file to accidentally autocomplete/import. This is enforced by
 ArchSafe, not just convention — see §8.
+
+**`contracts/index.ts` is the cross-module public surface.** `auth/contracts/index.ts` does
+`export * from "./service"` and deliberately nothing else — a future module depending on auth
+imports from `@/modules/auth/contracts`, not by reaching into a specific contract file. Making a
+new contract public is a one-line change to this barrel; it isn't something you also need to
+teach `archsafe.config.mts` about (see §8's note on how the `.public()` declaration resolves
+this transitively). Routes/service/module.ts inside the *same* module still import a specific
+contract file directly (`./contracts/service`, not the barrel) — the barrel is for outside
+consumers, not an extra hop for code that's already in the module.
 
 **Optional extra files**: route-level helpers that don't belong in `service.ts` (business logic)
 or `model.ts` (domain behavior) get their own single-purpose file, named for what they do — not

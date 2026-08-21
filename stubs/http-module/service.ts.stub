@@ -1,0 +1,25 @@
+import type { I__Name__Repository } from "./contracts/repository";
+import type { I__Name__Service } from "./contracts/service";
+import type { Create__Name__Type, __Name__Response } from "./dto";
+
+export class __Name__Service implements I__Name__Service {
+	constructor(private readonly _repo: I__Name__Repository) {}
+
+	async create(input: Create__Name__Type): Promise<__Name__Response> {
+		const row = await this._repo.create(input);
+		return {
+			id: row.id,
+			name: row.name,
+			createdAt: row.createdAt.toISOString(),
+		};
+	}
+
+	async list(): Promise<__Name__Response[]> {
+		const rows = await this._repo.findAll();
+		return rows.map((row) => ({
+			id: row.id,
+			name: row.name,
+			createdAt: row.createdAt.toISOString(),
+		}));
+	}
+}

@@ -1,0 +1,9 @@
+import { Logger } from "@shared/logger";
+import type { I__Name__Job } from "./contracts";
+
+export class __Name__Job implements I__Name__Job {
+	async run() {
+		// TODO: implement the scheduled work
+		Logger.info("__kebab__ job ran");
+	}
+}

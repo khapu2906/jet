@@ -2,7 +2,7 @@ import { db } from "@shared/db";
 import { BaseProcess, Runner } from "@/shared/base/processes";
 import type { ModuleConstructor } from "@/shared/base/modules";
 import { Logger, LoggerUI } from "@shared/logger";
-import { AppFactory } from "@shared/factory";
+import { AppRegistry } from "@shared/registry";
 import { EventBus, EventBusKey, createEventBus } from "@shared/event-manager";
 
 class WorkerProcess extends BaseProcess<void> {
@@ -12,7 +12,7 @@ class WorkerProcess extends BaseProcess<void> {
 		this._registerCoreDependencies();
 		this._initModules();
 
-		const eventBus: EventBus = AppFactory.rootContainer.resolve(EventBusKey);
+		const eventBus: EventBus = AppRegistry.rootContainer.resolve(EventBusKey);
 		await eventBus.start();
 
 		Logger.info("Worker process started — consuming events from queue");
@@ -21,14 +21,14 @@ class WorkerProcess extends BaseProcess<void> {
 
 	async cleanup(): Promise<void> {
 		try {
-			const eventBus = AppFactory.rootContainer.resolve<EventBus>(EventBusKey);
+			const eventBus = AppRegistry.rootContainer.resolve<EventBus>(EventBusKey);
 			await eventBus.stop();
 		} catch (error) {
 			Logger.error(`Error stopping EventBus: ${error}`);
 		}
 
 		const moduleInstances = Array.from(
-			AppFactory.importModuleInstances.values(),
+			AppRegistry.importModuleInstances.values(),
 		).reverse();
 
 		for (const module of moduleInstances) {
@@ -44,15 +44,15 @@ class WorkerProcess extends BaseProcess<void> {
 
 	protected _registerCoreDependencies() {
 		const eventBus = createEventBus();
-		AppFactory.rootContainer.singleton("db", () => db);
-		AppFactory.rootContainer.singleton(EventBusKey, () => eventBus);
+		AppRegistry.rootContainer.singleton("db", () => db);
+		AppRegistry.rootContainer.singleton(EventBusKey, () => eventBus);
 	}
 
 	protected _initModules() {
 		this._modules.forEach((ModuleClass) => {
-			const instance = new ModuleClass(AppFactory.rootContainer.createChild());
+			const instance = new ModuleClass(AppRegistry.rootContainer.createChild());
 			instance.register();
-			AppFactory.setModule(instance.name, instance);
+			AppRegistry.setModule(instance.name, instance);
 		});
 	}
 }

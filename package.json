@@ -1,6 +1,6 @@
 {
 	"name": "jet",
-	"version": "0.1.16",
+	"version": "0.2.1",
 	"private": true,
 	"author": {
 		"name": "Kent Phung",
@@ -19,7 +19,11 @@
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"arch:check": "archsafe --config archsafe.config.mts",
 		"arch:baseline": "archsafe baseline --config archsafe.config.mts",
-		"db:setup": "node scripts/db-setup.js",
+		"docs:dev": "npx --yes serve docs",
+		"make:http": "node scripts/make/module.js http",
+		"make:worker": "node scripts/make/module.js worker",
+		"make:scheduler": "node scripts/make/module.js scheduler",
+		"db:setup": "node scripts/db/setup.js",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:push": "drizzle-kit push",

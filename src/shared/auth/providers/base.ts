@@ -2,7 +2,7 @@ import type { AuthContext } from "../type";
 
 export const AuthProviderKey = Symbol("AuthProvider");
 
-export interface AuthProvider {
+export interface IAuthProvider {
 	/** get token/key from HTTP request. Each provider decide extract. */
 	extractToken(headers: Record<string, string | undefined>): string | null;
 	/** verify token/key and return AuthContext. */
@@ -11,6 +11,6 @@ export interface AuthProvider {
 
 export const TokenIssuerKey = Symbol("TokenIssuer");
 
-export interface TokenIssuer {
+export interface ITokenIssuer {
 	sign(payload: Record<string, unknown>, expiresIn?: string): string;
 }

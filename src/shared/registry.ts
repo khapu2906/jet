@@ -1,20 +1,20 @@
 import { Container } from "@khapu2906/treasure-chest";
 import { Module } from "./base/modules";
 
-export class AppFactory {
+export class AppRegistry {
 	static rootContainer = new Container();
 	static importModuleInstances = new Map<string, Module>();
 
 	static getModule(key: string) {
-		return AppFactory.importModuleInstances.get(key);
+		return AppRegistry.importModuleInstances.get(key);
 	}
 
 	static setModule(key: string, module: Module) {
-		AppFactory.importModuleInstances.set(key, module);
+		AppRegistry.importModuleInstances.set(key, module);
 	}
 
 	static getContainer(key: string): Container {
-		const module = AppFactory.importModuleInstances.get(key);
+		const module = AppRegistry.importModuleInstances.get(key);
 		if (!module) {
 			throw new Error(`No module found for key: ${String(key)}`);
 		}

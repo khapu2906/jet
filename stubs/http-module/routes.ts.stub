@@ -1,0 +1,31 @@
+import { Hono } from "hono";
+import type { Container } from "@khapu2906/treasure-chest";
+import { __Name__ServiceKey, type I__Name__Service } from "./contracts/service";
+import { Create__Name__Dto, type Create__Name__Type, __Name__ListResponseDto, __Name__ResponseDto } from "./dto";
+import { validate, getValidatedData } from "@shared/middleware/validator";
+import { describeRoute } from "@shared/doc";
+import { docs } from "./doc";
+import { success } from "@shared/utils/response";
+
+export function create__Name__Routes(container: Container): Hono {
+	const service = container.resolve<I__Name__Service>(__Name__ServiceKey);
+	const app = new Hono();
+
+	app.post(
+		"/",
+		describeRoute(docs.create),
+		validate(Create__Name__Dto, "body"),
+		async (c) => {
+			const body = getValidatedData<Create__Name__Type>(c);
+			const result = await service.create(body);
+			return c.json(success(__Name__ResponseDto, result), 201);
+		},
+	);
+
+	app.get("/", describeRoute(docs.list), async (c) => {
+		const result = await service.list();
+		return c.json(success(__Name__ListResponseDto, result));
+	});
+
+	return app;
+}

@@ -1,7 +1,7 @@
 import { BaseProcess, Runner } from "@/shared/base/processes";
 import type { ModuleConstructor } from "@/shared/base/modules";
 import { Logger, LoggerUI } from "@shared/logger";
-import { AppFactory } from "@shared/factory";
+import { AppRegistry } from "@shared/registry";
 import { createEventBus, EventBus, EventBusKey } from "@/shared/event-manager";
 import { SchedulerManager } from "@/shared/scheduler/manager";
 import { SchedulerKey, type ISchedulerManager } from "@/shared/scheduler/contracts";
@@ -18,7 +18,7 @@ class SchedulerProcess extends BaseProcess<void> {
 		await eventBus.start();
 
 		const scheduler =
-			AppFactory.rootContainer.resolve<ISchedulerManager>(SchedulerKey);
+			AppRegistry.rootContainer.resolve<ISchedulerManager>(SchedulerKey);
 		const jobs = scheduler.listJobs();
 
 		Logger.info("Scheduler process started");
@@ -31,7 +31,7 @@ class SchedulerProcess extends BaseProcess<void> {
 	async cleanup(): Promise<void> {
 		try {
 			const scheduler =
-				AppFactory.rootContainer.resolve<ISchedulerManager>(SchedulerKey);
+				AppRegistry.rootContainer.resolve<ISchedulerManager>(SchedulerKey);
 			await scheduler.stop();
 
 			const eventBus = this._container.resolve<EventBus>(EventBusKey);
@@ -41,7 +41,7 @@ class SchedulerProcess extends BaseProcess<void> {
 		}
 
 		const moduleInstances = Array.from(
-			AppFactory.importModuleInstances.values(),
+			AppRegistry.importModuleInstances.values(),
 		).reverse();
 
 		for (const module of moduleInstances) {
@@ -64,9 +64,9 @@ class SchedulerProcess extends BaseProcess<void> {
 
 	protected _initModules() {
 		this._modules.forEach((ModuleClass) => {
-			const instance = new ModuleClass(AppFactory.rootContainer.createChild());
+			const instance = new ModuleClass(AppRegistry.rootContainer.createChild());
 			instance.register();
-			AppFactory.setModule(instance.name, instance);
+			AppRegistry.setModule(instance.name, instance);
 		});
 	}
 }

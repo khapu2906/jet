@@ -1,5 +1,37 @@
 # Module System — How To
 
+## Scaffolding a New Module
+
+`scripts/make/module.js` generates a working module skeleton from a stub under `stubs/`, so a
+new module starts from the same shape as `auth`/`demo-scheduler` instead of hand-copied
+boilerplate:
+
+```bash
+npm run make:http -- billing-report       # -> src/modules/billing-report/
+npm run make:worker -- order-sync         # -> src/modules/order-sync-worker/
+npm run make:scheduler -- cleanup-tmp     # -> src/modules/cleanup-tmp-scheduler/
+```
+
+| Type | Stub | Generates | Suffix |
+|---|---|---|---|
+| `http` | `stubs/http-module/` | `contracts/{index,service,repository}.ts`, `model.ts`, `dto.ts`, `repository.ts` (in-memory placeholder), `service.ts`, `routes.ts`, `doc.ts`, `module.ts` | none |
+| `worker` | `stubs/worker-module/` | `handlers/*.handler.ts` (implements `EventHandler`), `module.ts`, plus `shared/event-manager/events/<name>.event.ts` (example event) | `-worker` |
+| `scheduler` | `stubs/scheduler-module/` | `contracts.ts`, `job.ts`, `module.ts` | `-scheduler` |
+
+The name is normalized to kebab/camel/Pascal case automatically (`order-sync` and `OrderSync`
+produce the same output). The generator refuses to run if the target directory already exists,
+and prints the exact import + `_modules[]` line to add to the corresponding
+`src/processes/{http,worker,scheduler}.ts` — it does not edit that file for you, since it's
+hand-written wiring the generator shouldn't guess at.
+
+The `http` stub's `repository.ts` is an in-memory `Map`, not Drizzle — replace it once the module
+has a real table under `shared/db/schema` (see `docs/llm/code-pattern.md` §2). For `worker`, the
+event definition lands in `shared/event-manager/events/` (not inside the module folder) —
+consistent with every other event in the codebase living in that shared catalog, not scattered
+per-consumer; the generator also appends its export to that folder's `index.ts` barrel. It's a
+starting example — delete the file and its barrel export if the module only handles events
+another module already defines.
+
 ## Creating a Module
 
 ```ts
@@ -66,14 +98,14 @@ protected getImportModules(): ModuleConstructor[] {
 // ...then anywhere after: this.container.resolve<IOtherService>(OtherServiceKey)
 ```
 
-**Escape hatch: `AppFactory.getModule()`.** Retrieves the *exact same* instance of an
+**Escape hatch: `AppRegistry.getModule()`.** Retrieves the *exact same* instance of an
 already-initialized top-level module (not a new copy) — only needed if the target service is
 genuinely stateful and callers must share one instance:
 
 ```ts
-import { AppFactory } from "@shared/factory"
+import { AppRegistry } from "@shared/registry"
 
-const otherModule = AppFactory.getModule("other") // module.name, not the class
+const otherModule = AppRegistry.getModule("other") // module.name, not the class
 if (!otherModule) throw new Error("OtherModule must be registered before this module in _modules[]")
 const otherService = otherModule.getContainer().resolve<IOtherService>(OtherServiceKey)
 ```

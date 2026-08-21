@@ -26,12 +26,17 @@ produces byte-identical output.
 
 ## Adding a module that matches the enforced shape
 
-Follow `docs/llm/code-pattern.md` §1's folder layout exactly — `archsafe.config.mts` doesn't
-need to be touched for a new module as long as it's added to `FEATURE_MODULES` in that file and
-follows the same file names (`routes.ts`, `service.ts`, `contracts/service.ts`, `repository.ts`,
-`contracts/repository.ts`, `module.ts`). If it doesn't need a repository (e.g. a module like
-`system` that's mostly read-only), just omit those files — the layer simply stays empty, no rule
-changes needed.
+Follow `docs/llm/code-pattern.md` §1's folder layout exactly — `archsafe.config.mts` never needs
+editing for a new module. `FEATURE_MODULES` is read from `src/modules/*` at check time (every
+folder there counts), and the layer globs (`routes.ts`, `service.ts`, `contracts/service.ts`,
+`repository.ts`, `contracts/repository.ts`, `module.ts`) apply to any module using those file
+names. If it doesn't need a repository (e.g. a module like `system` that's mostly read-only),
+just omit those files — the layer simply stays empty, no rule changes needed.
+
+To expose something to other modules, add a `contracts/index.ts` barrel re-exporting only what
+should be public (see `docs/llm/code-pattern.md` §1) — no `archsafe.config.mts` change needed
+for that either, since `.public("module.ts", "contracts/index.ts")` already covers whatever the
+barrel re-exports, transitively.
 
 ## What's enforced, in plain terms
 
@@ -48,7 +53,7 @@ version of this list (also what's synced into `CLAUDE.md`). Summarized:
 | Config domains (`shared/config/*.ts`) never depend on each other | Each depends only on `env.ts` |
 | No feature module depends back on `shared/` or `processes/` | Dependency direction is one-way |
 | `I*Repository`/`I*Service` interfaces must live in `contracts/repository.ts`/`contracts/service.ts` | Catches the interface ending up in the wrong file, anywhere in the repo |
-| Cross-module access — allowed, not forbidden | A module *can* depend on another's `contracts/service.ts` (e.g. via `getImportModules()`) — nothing else in that module is reachable |
+| Cross-module access — allowed, not forbidden | A module *can* depend on another's `contracts/index.ts` (e.g. via `getImportModules()`) and, transitively, whatever that barrel re-exports — nothing else in that module is reachable |
 
 For why each of these exists (including two bypasses that were found and fixed during
 development, and what the tool still *can't* catch), see `docs/deeper/archsafe.md`.

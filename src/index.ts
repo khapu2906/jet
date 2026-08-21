@@ -70,7 +70,7 @@ async function runSelected(types: string[]): Promise<void> {
 }
 
 async function main() {
-	const processType = process.env.PROCESS_TYPE ?? "api";
+	const processType = process.env.PROCESS_TYPE ?? "http";
 
 	const types = [
 		...new Set(

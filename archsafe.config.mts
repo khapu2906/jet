@@ -1,6 +1,9 @@
 /**
  * @link https://archsafe.vercel.app
  */
+import { readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   architecture,
   forbid,
@@ -9,56 +12,64 @@ import {
   noCycles,
 } from "@archsafe/core";
 
-// Feature modules under src/modules/*. Each one is wired into a process
-// (see src/processes/http.ts) purely through its module.ts — nothing else
-// in the module is meant to be reachable from outside it.
-const FEATURE_MODULES = ["auth", "demo-scheduler", "system"] as const;
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Feature modules under src/modules/* — every folder there, auto-discovered
+// so a new module never needs this file edited just to be picked up. Each
+// one is wired into a process (see src/processes/http.ts) purely through
+// its module.ts — nothing else in the module is meant to be reachable from
+// outside it.
+const FEATURE_MODULES = readdirSync(join(__dirname, "src/modules"), {
+  withFileTypes: true,
+})
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name);
+
+// A module's contract/implementation pair, e.g. "service" expands to two
+// layers: "serviceContract" (contracts/service.ts — interface + Symbol key
+// only) and "service" (service.ts — the concrete class). Kept as two
+// layers, not one, specifically so the forbid rules below can say "routes
+// may depend on serviceContract but not on service" — see the comment on
+// those rules for why that distinction matters. Add a kind here (e.g.
+// "cache") if a module ever needs a third contract-backed layer.
+const CONTRACT_KINDS = ["service", "repository"] as const;
 
 const archBuilder = architecture("Jet Framework");
 
 // Globs below are relative to `rootDir` ("./src"), not the repo root —
 // ArchSafe's rootDir mode reports every file path relative to rootDir itself.
 for (const name of FEATURE_MODULES) {
-  archBuilder.module(name, `modules/${name}`, (m) =>
-    m
-      .layer("routes", "routes.ts")
-      // Contract vs. implementation are DIFFERENT layers here — unlike an
-      // earlier version of this config that put contracts/repository.ts on
-      // the same layer as repository.ts. That merge was correct for
-      // repository (routes/service must never reach it at all, contract or
-      // not — merging just meant one forbid rule covered both), but wrong
-      // for service: routes.ts is *supposed* to depend on the service
-      // layer, and without this split that permission silently also
-      // allowed `import { AuthService } from "./service"` (the concrete
-      // class) — nothing distinguished "via contract" from "via instance".
-      // Splitting service/serviceContract (and, symmetrically,
-      // repository/repositoryContract) lets the rules below say exactly
-      // which side of each boundary is contract-only.
-      .layer("serviceContract", "contracts/service.ts")
-      .layer("service", "service.ts")
-      .layer("repositoryContract", "contracts/repository.ts")
-      .layer("repository", "repository.ts")
-      // Catch-all for everything else in the module (module.ts, dto.ts,
-      // model.ts, utils.ts, doc.ts, job.ts, ...). A module's own
-      // "bucket" only matches a file literally named after its basePath, so
-      // without this every file above would be classified into NO element
-      // at all and every rule would silently stop seeing it — including
-      // moduleBoundary, since module.ts (the declared public entry) would
-      // itself be unclassified.
-      .layer("internal", "**")
-      // Public API of this module, enforced automatically (moduleBoundary)
-      // the moment .public(...) is declared — no separate forbid rules
-      // needed for cross-module access. module.ts is how a *process*
-      // mounts the module; contracts/service.ts is how *another module*
-      // is meant to depend on it (via getImportModules() + share(), see
-      // docs/deeper/modules.md) — repository.ts/contracts/repository.ts/
-      // service.ts/routes.ts are never public, on purpose: no module may
-      // reach another module's data layer or concrete service class,
-      // only its service contract. Declaring a path that doesn't exist
-      // in a given module (e.g. demo-scheduler has no contracts/service.ts
-      // yet) is harmless — it just never matches anything.
-      .public("module.ts", "contracts/service.ts"),
-  );
+  archBuilder.module(name, `modules/${name}`, (m) => {
+    let module = m.layer("routes", "routes.ts");
+    for (const kind of CONTRACT_KINDS) {
+      module = module
+        .layer(`${kind}Contract`, `contracts/${kind}.ts`)
+        .layer(kind, `${kind}.ts`);
+    }
+    return (
+      module
+        // Catch-all for everything else in the module (module.ts, dto.ts,
+        // model.ts, utils.ts, doc.ts, job.ts, ...). A module's own "bucket"
+        // only matches a file literally named after its basePath, so
+        // without this every file above would be classified into NO
+        // element at all and every rule would silently stop seeing it —
+        // including moduleBoundary, since module.ts (the declared public
+        // entry) would itself be unclassified.
+        .layer("internal", "**")
+        // Public API of this module, enforced automatically (moduleBoundary)
+        // the moment .public(...) is declared — no separate forbid rules
+        // needed for cross-module access. module.ts is how a *process*
+        // mounts the module; contracts/service.ts is how *another module*
+        // is meant to depend on it (via getImportModules() + share(), see
+        // docs/deeper/modules.md) — repository.ts/contracts/repository.ts/
+        // service.ts/routes.ts are never public, on purpose: no module may
+        // reach another module's data layer or concrete service class,
+        // only its service contract. Declaring a path that doesn't exist
+        // in a given module (e.g. demo-scheduler has no contracts/service.ts
+        // yet) is harmless — it just never matches anything.
+        .public("module.ts", "contracts/service.ts")
+    );
+  });
 }
 
 // Domain config files under src/shared/config/*.ts. Each one must depend
@@ -122,15 +133,18 @@ const rules = [
   // (A module missing one of these files just never populates that layer —
   // harmless, and forward-compatible if e.g. "system" grows a repository.)
   ...FEATURE_MODULES.flatMap((name) => [
-    forbid(`${name}.routes`, `${name}.service`),
+		forbid(`${name}.routes`, `${name}.service`),
+    
     forbid(`${name}.routes`, `${name}.repositoryContract`),
     forbid(`${name}.routes`, `${name}.repository`),
-    forbid(`${name}.service`, `${name}.routes`),
+		forbid(`${name}.service`, `${name}.routes`),
+    
     forbid(`${name}.service`, `${name}.repository`),
     forbid(`${name}.repository`, `${name}.routes`),
     forbid(`${name}.repository`, `${name}.service`),
     forbid(`${name}.repository`, `${name}.serviceContract`),
-    // The repository layer is the only place allowed to talk to a DB
+
+		// The repository layer is the only place allowed to talk to a DB
     // driver directly — routes/services must go through it. Blocking just
     // the raw driver packages has a hole: nothing stops routes.ts/service.ts
     // from importing this app's own `@shared/db` wrapper directly instead
@@ -138,7 +152,8 @@ const rules = [
     // dedicated `shared.db` layer from those two, on top of the packages.
     forbidPackages(`${name}.routes`, "pg", "drizzle-orm"),
     forbidPackages(`${name}.service`, "pg", "drizzle-orm"),
-    forbid(`${name}.routes`, "shared.db"),
+
+		forbid(`${name}.routes`, "shared.db"),
     forbid(`${name}.service`, "shared.db"),
   ]),
 
@@ -158,12 +173,13 @@ const rules = [
     ),
   ),
 
-  // Modules are decoupled by default: `.public("module.ts", "contracts/service.ts")`
+  // Modules are decoupled by default: `.public("module.ts", "contracts/index.ts")`
   // above means moduleBoundary is auto-enforced for every FEATURE_MODULE —
   // another module (or anything else) reaching into routes.ts/service.ts/
   // repository.ts/contracts/repository.ts is a violation with no rule needed
   // here. What IS allowed (deliberately, not by omission): one module
-  // depending on another's contracts/service.ts via getImportModules(), for
+  // depending on another's contracts/index.ts (or, transitively, whatever
+  // it re-exports, e.g. contracts/service.ts) via getImportModules(), for
   // a case like a future `user` module needing auth's IAuthService. No
   // module currently does this — event-driven (@shared/event-manager) is
   // still the default choice for anything that doesn't need a synchronous

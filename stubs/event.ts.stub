@@ -1,0 +1,8 @@
+import { defineEvent } from "@event-bus-manager/core";
+
+// Starting example event, generated alongside the __kebab__-worker module —
+// rename/extend freely, or delete this file (and its export in ./index.ts)
+// if the module only handles events another module already defines here.
+export const __Name__Requested = defineEvent<{
+	id: string;
+}>("__kebab__.requested", "v1");

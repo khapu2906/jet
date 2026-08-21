@@ -1,0 +1,14 @@
+import type { __Name__ } from "../model";
+import type { Create__Name__Type } from "../dto";
+
+// Kept in its own file (not merged into ../repository.ts, not shared with
+// ./service.ts) so ArchSafe classifies it under the "repository" layer
+// specifically — see archsafe.config.mts. This is what makes
+// forbid(routes, repository) also catch routes.ts resolving
+// I__Name__Repository directly, bypassing service.ts.
+export const __Name__RepositoryKey = Symbol("__Name__Repository");
+
+export interface I__Name__Repository {
+	create(input: Create__Name__Type): Promise<__Name__>;
+	findAll(): Promise<__Name__[]>;
+}

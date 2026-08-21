@@ -1,0 +1,14 @@
+import { Module } from "@shared/base/modules";
+import { EventBus, EventBusKey } from "@shared/event-manager";
+import { __Name__RequestedHandler } from "./handlers/__kebab__-requested.handler";
+
+export class __Name__WorkerModule extends Module {
+	readonly name = "__kebab__-worker";
+
+	register(): void {
+		const eventBus = this.container.resolve<EventBus>(EventBusKey);
+		eventBus.subscribe(new __Name__RequestedHandler());
+	}
+
+	bootstrap(): void {}
+}
