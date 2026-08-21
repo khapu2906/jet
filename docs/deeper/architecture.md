@@ -6,7 +6,7 @@ For `PROCESS_TYPE` values, worker scaling config, and directory layout, see `doc
 
 ```
 index.ts
-  └─ PROCESS_TYPE → ApiProcess | WorkerProcess | SchedulerProcess
+  └─ PROCESS_TYPE → HttpProcess | WorkerProcess | SchedulerProcess
         └─ BaseProcess
               1. _registerCoreDependencies()   ← DB, EventBus
               2. _initModules()                ← register() + onInit()
@@ -16,7 +16,7 @@ index.ts
 
 Each process type is responsible for only one concern:
 
-* API → request handling
+* Http → request handling
 * Worker → job execution
 * Scheduler → job triggering
 
@@ -73,12 +73,12 @@ See `docs/deeper/middleware.md` for why this specific order was chosen.
 
 ## System Flow (End-to-End Architecture)
 
-### API Request Flow
+### Http Request Flow
 
 ```mermaid
 flowchart TD
     %% Nodes Definition
-    A[Client Request] --> B[API Process]
+    A[Client Request] --> B[Http Process]
     B --> C
 
     %% Middleware Subgraph

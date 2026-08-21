@@ -53,7 +53,7 @@ src/
     │   ├── modules.ts        # Base Module abstraction
     │   └── processes.ts      # BaseProcess + Runner abstraction
     │
-    ├── factory.ts           # AppFactory / container bootstrap
+    ├── registry.ts          # AppRegistry — root container + module instance registry
     ├── auth/                # JWT, RBAC, auth middleware
     ├── config/              # Environment configuration
     ├── db/                  # Drizzle ORM instance + schema

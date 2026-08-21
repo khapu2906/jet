@@ -1,0 +1,5 @@
+export const __Name__JobKey = Symbol("__Name__Job");
+
+export interface I__Name__Job {
+	run(): Promise<void>;
+}

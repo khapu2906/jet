@@ -1,5 +1,5 @@
 import { Container } from "@khapu2906/treasure-chest";
-import { AppFactory } from "@shared/factory";
+import { AppRegistry } from "@shared/registry";
 import type { ModuleConstructor } from "./modules";
 
 export abstract class BaseProcess<T = void> {
@@ -7,7 +7,7 @@ export abstract class BaseProcess<T = void> {
 
 	protected _modules: ModuleConstructor[] = [];
 
-	protected readonly _container: Container = AppFactory.rootContainer;
+	protected readonly _container: Container = AppRegistry.rootContainer;
 
 	/**
 	 * Bootstrap the application

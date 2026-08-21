@@ -55,18 +55,32 @@ This wasn't the original shape. Earlier iterations went through, in order:
 
 ## `moduleBoundary` / `.public(...)`
 
-Declaring `.public("module.ts", "contracts/service.ts")` on a module auto-enables `moduleBoundary`
+Declaring `.public("module.ts", "contracts/index.ts")` on a module auto-enables `moduleBoundary`
 for it (no separate rule needed) — `validator.ts` builds a `modulePublicFiles` set per module and
 flags any edge from outside the module into a file not in that set. Public-file resolution is
 **transitive through re-exports**: `classify.ts` follows a public file's `export { X } from "./y"`
 /`export * from "./y"` chain, so a symbol only reachable via a public barrel still counts as public
-even though it's physically declared elsewhere. Not used in this codebase's barrels currently, but
-matters if a module's public surface is ever re-exported through an `index.ts`.
+even though it's physically declared elsewhere.
 
-Verified both directions with a temporary cross-module edge from `demo-scheduler/module.ts`:
-importing `auth`'s `contracts/service.ts` (`IAuthService`) → clean; importing
-`contracts/repository.ts` (`IAuthRepository`) → `Module boundary violation: ... reaches into auth
-outside its public API`.
+This is what `auth/contracts/index.ts` relies on: it's declared public, and does
+`export * from "./service"` — nothing else — so `classify.ts`'s traversal adds
+`contracts/service.ts` to the same public set purely because the barrel re-exports it.
+`contracts/repository.ts` is never re-exported from anywhere public, so it stays unreachable.
+Adding a second public contract later is a one-line change to the barrel; `archsafe.config.mts`
+never needs to change, since it only names the barrel file, not each thing inside it.
+
+**The transitive resolution does not require going through the barrel at import time** — it only
+expands *which files count as public*. A consumer that imports `contracts/service.ts` directly,
+skipping `contracts/index.ts` entirely, is equally allowed, because by the time `validate()` runs,
+`contracts/service.ts` is already in the public set regardless of which file the edge's source
+actually imported from. Confirmed with three cross-module test edges from
+`demo-scheduler/module.ts`: importing `IAuthService` via the barrel (`.../contracts`) → clean;
+importing the exact same symbol directly from `.../contracts/service` → also clean; importing
+`IAuthRepository` from `.../contracts/repository` → `Module boundary violation: ... reaches into
+auth outside its public API`. The barrel is a convention for consumers to follow (one clean
+import path, one place that documents what's public) and the single point of control for module
+authors (what to re-export) — not an additional enforcement boundary beyond what `.public(...)`
+already provides.
 
 ## `mustResideIn`: a name-pattern placement check, independent of the layer tree
 

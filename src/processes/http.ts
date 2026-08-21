@@ -6,7 +6,7 @@ import { Module, type ModuleConstructor } from "@/shared/base/modules";
 import { BaseProcess, Runner } from "@/shared/base/processes";
 import type { ServerType } from "@hono/node-server";
 import { Logger, LoggerUI } from "@shared/logger";
-import { AppFactory } from "@shared/factory";
+import { AppRegistry } from "@shared/registry";
 import { requestId } from "hono/request-id";
 
 import { AuthModule } from "@/modules/auth/module";
@@ -34,7 +34,7 @@ import { LocalStorage, StorageKey } from "@/shared/storage";
 class HttpProcess extends BaseProcess<Hono> {
 	protected _modules: ModuleConstructor[] = [SystemModule, AuthModule];
 
-	private readonly _moduleInstances = AppFactory.importModuleInstances;
+	private readonly _moduleInstances = AppRegistry.importModuleInstances;
 
 	private readonly _moduleOrder: Module[] = [];
 

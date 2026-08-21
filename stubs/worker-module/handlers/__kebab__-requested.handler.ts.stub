@@ -1,0 +1,16 @@
+import type { DomainEvent, EventHandler, PayloadOf } from "@shared/event-manager";
+import { __Name__Requested } from "@shared/event-manager/events";
+
+export class __Name__RequestedHandler
+	implements EventHandler<PayloadOf<typeof __Name__Requested>>
+{
+	eventName = __Name__Requested.name;
+	eventVersion = __Name__Requested.version;
+	handlerName = "__kebab__.requested.handle";
+
+	async handle(
+		_event: DomainEvent<PayloadOf<typeof __Name__Requested>>,
+	): Promise<void> {
+		// TODO: implement — _event.payload.id is available here
+	}
+}

@@ -1,4 +1,4 @@
-# Jet
+# Jet V0.2.1
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
@@ -17,9 +17,66 @@ A modular TypeScript backend framework built on [Hono](https://hono.dev), with P
 ## Getting Started
 
 ### Overview
-<div align="center">
-  <img src="https://github.com/khapu2906/jet/blob/main/assets/arch.png?raw=true" alt="Jet Architect" />
-</div>
+
+```mermaid
+graph TB
+    IDX["index.ts (PROCESS_TYPE)"]
+
+    subgraph HTTP_P["HTTP Process"]
+        HTTP["middleware + routes"] --> MODS["Modules<br/>routes → service → repository"]
+        MODS --> HDI[("DI Container<br/>(this process only)")]
+    end
+
+    subgraph WORKER_P["Worker Process"]
+        WORKER["event handlers"] --> WDI[("DI Container<br/>(this process only)")]
+    end
+
+    subgraph SCHED_P["Scheduler Process"]
+        SCHED["scheduled jobs"] --> SDI[("DI Container<br/>(this process only)")]
+    end
+
+    IDX --> HTTP
+    IDX --> WORKER
+    IDX --> SCHED
+
+    subgraph SHARED["Shared Infrastructure (external, cross-process)"]
+        DB[("PostgreSQL / Drizzle")]
+        BUS{{"Event Bus"}}
+        STORE[("Storage")]
+    end
+
+    HDI --> DB
+    HDI --> BUS
+    HDI --> STORE
+    WDI --> DB
+    WDI --> BUS
+    SDI --> DB
+
+    style HTTP_P fill:#f9f9f9,stroke:#333,stroke-dasharray: 5 5
+    style WORKER_P fill:#f9f9f9,stroke:#333,stroke-dasharray: 5 5
+    style SCHED_P fill:#f9f9f9,stroke:#333,stroke-dasharray: 5 5
+    style SHARED fill:#eef7ee,stroke:#28a745,stroke-dasharray: 5 5
+```
+
+> Each process type has its own in-memory DI container (`AppRegistry.rootContainer` —
+> `src/shared/registry.ts`) — nothing shares it across processes. What's actually shared when
+> `PROCESS_TYPE=http|worker|scheduler` run as separate deployments (PM2/Docker/K8s, see
+> [Multi-Process Mode](#multi-process-mode) below) is the external infra: PostgreSQL and, once a
+> real transport (`pg-boss`/`bullMQ`) replaces the in-memory Event Bus, the queue itself. See
+> `docs/apply/architecture.md` / `docs/deeper/architecture.md` for the full request flow and
+> bootstrap sequence.
+
+### Starting a New Project from Jet
+
+The steps below (`npm install`, `npm run dev`, ...) assume you already have this repo checked
+out to work on Jet itself. To start **your own app** on top of Jet instead — pulling a specific
+tagged version off GitHub Releases rather than cloning `main` — see
+[`docs/apply/getting-started.md`](docs/apply/getting-started.md). Quick version:
+
+```bash
+npx degit khapu2906/jet#v0.1.11 my-app   # swap the tag for the latest at
+cd my-app                                # https://github.com/khapu2906/jet/releases
+```
 
 ### Prerequisites
 
@@ -66,6 +123,10 @@ Server runs on `http://localhost:2906` by default.
 | `npm lint:fix` | Auto-fix lint issues |
 | `npm arch:check` | Enforce module/layer boundaries with [ArchSafe](https://archsafe.vercel.app/) (`archsafe.config.mts`) |
 | `npm arch:baseline` | Snapshot current architecture violations to adopt ArchSafe gradually |
+| `npm docs:dev` | Serve `docs/` locally as a browsable Docsify site |
+| `npm make:http -- <name>` | Scaffold a new HTTP module from `stubs/http-module/` |
+| `npm make:worker -- <name>` | Scaffold a new worker module from `stubs/worker-module/` |
+| `npm make:scheduler -- <name>` | Scaffold a new scheduler module from `stubs/scheduler-module/` |
 
 ### Database
 
@@ -92,7 +153,7 @@ src/
 │
 ├── modules/
 │   ├── auth/                 # Authentication module
-│   ├── user-scheduler/      # Scheduler-based user jobs
+│   ├── demo-scheduler/      # Scheduler-based demo jobs
 │   └── system/              # Health check / system utilities
 │
 └── shared/
@@ -100,7 +161,7 @@ src/
     │   ├── modules.ts        # Base Module abstraction
     │   └── processes.ts      # BaseProcess + Runner abstraction
     │
-    ├── factory.ts           # AppFactory / container bootstrap
+    ├── registry.ts          # AppRegistry — root container + module instance registry
     ├── auth/                # JWT, RBAC, auth middleware
     ├── config/              # Environment configuration
     ├── db/                  # Drizzle ORM instance + schema
@@ -112,8 +173,7 @@ src/
     ├── logger/              # Logging system
     ├── storage/             # Storage abstraction layer
     ├── scheduler/           # Scheduler abstraction layer
-    ├── utils/               # Shared utilities
-    └── factory.ts           # Global app factory (legacy/alias)
+    └── utils/               # Shared utilities
 ```
 
 ## Environment Variables
@@ -123,6 +183,12 @@ See `.env.example` for all available options.
 Key variables:
 
 ```env
+# ============================================================================
+# App
+# ============================================================================
+APP_NAME="Jet Framework"
+APP_VERSION="1.0.0"
+
 # ============================================================================
 # PROCESS
 # ============================================================================
@@ -211,12 +277,22 @@ http://localhost:2906/docs
 
 ## Documentation
 
-| Doc | Description |
-|---|---|
-| [Architecture](docs/architecture.md) | Overview, lifecycle, request flow |
-| [Modules](docs/modules.md) | Module system, DI, creating new modules |
-| [Auth](docs/auth.md) | JWT, RBAC, register/login flow |
-| [Responses](docs/responses.md) | Response format, error types, error handling |
-| [Middleware](docs/middleware.md) | CORS, CSP, rate limiting, security headers |
-| [Database](docs/database.md) | Schema, migrations, adding new tables |
-| [Config](docs/config.md) | All environment variables and defaults |
+Docs are split into `apply/` (how to, with copy-pasteable code) and `deeper/` (why, internal
+mechanics/rationale):
+
+| Topic | Apply | Deeper |
+|---|---|---|
+| Getting Started (new project) | [docs/apply/getting-started.md](docs/apply/getting-started.md) | — |
+| Architecture | [docs/apply/architecture.md](docs/apply/architecture.md) | [docs/deeper/architecture.md](docs/deeper/architecture.md) |
+| Modules | [docs/apply/modules.md](docs/apply/modules.md) | [docs/deeper/modules.md](docs/deeper/modules.md) |
+| Auth | [docs/apply/auth.md](docs/apply/auth.md) | [docs/deeper/auth.md](docs/deeper/auth.md) |
+| HTTP | [docs/apply/http.md](docs/apply/http.md) | [docs/deeper/http.md](docs/deeper/http.md) |
+| Middleware | [docs/apply/middleware.md](docs/apply/middleware.md) | [docs/deeper/middleware.md](docs/deeper/middleware.md) |
+| Worker | [docs/apply/worker.md](docs/apply/worker.md) | [docs/deeper/worker.md](docs/deeper/worker.md) |
+| Scheduler | [docs/apply/scheduler.md](docs/apply/scheduler.md) | [docs/deeper/scheduler.md](docs/deeper/scheduler.md) |
+| ArchSafe (architecture enforcement) | [docs/apply/archsafe.md](docs/apply/archsafe.md) | [docs/deeper/archsafe.md](docs/deeper/archsafe.md) |
+| Responses | [docs/apply/responses.md](docs/apply/responses.md) | — |
+| Database | [docs/apply/database.md](docs/apply/database.md) | — |
+| Config | [docs/apply/config.md](docs/apply/config.md) | — |
+
+For AI agents/code-pattern reference, see `docs/llm/code-pattern.md` and `CLAUDE.md`.

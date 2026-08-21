@@ -1,0 +1,26 @@
+import { Hono } from "hono";
+import { Module } from "@shared/base/modules";
+import { __Name__Repository } from "./repository";
+import { __Name__RepositoryKey } from "./contracts/repository";
+import { __Name__Service } from "./service";
+import { __Name__ServiceKey } from "./contracts/service";
+import { create__Name__Routes } from "./routes";
+
+export class __Name__Module extends Module {
+	readonly name = "__kebab__";
+
+	register(): void {
+		this.container.bind(__Name__RepositoryKey, () => new __Name__Repository());
+
+		this.container.bind(
+			__Name__ServiceKey,
+			(c) => new __Name__Service(c.resolve(__Name__RepositoryKey)),
+		);
+	}
+
+	bootstrap() {
+		const app = new Hono();
+		app.route("/__kebab__", create__Name__Routes(this.container));
+		return app;
+	}
+}

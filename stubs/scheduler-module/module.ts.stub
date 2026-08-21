@@ -1,0 +1,24 @@
+import { SchedulerKey, type ISchedulerManager } from "@shared/scheduler/contracts";
+import { Module } from "@shared/base/modules";
+import { __Name__JobKey, type I__Name__Job } from "./contracts";
+import { __Name__Job } from "./job";
+
+export class __Name__SchedulerModule extends Module {
+	readonly name = "__kebab__-scheduler";
+
+	register(): void {
+		const scheduler = this.container.resolve<ISchedulerManager>(SchedulerKey);
+
+		this.container.singleton(__Name__JobKey, () => new __Name__Job());
+
+		const job = this.container.resolve<I__Name__Job>(__Name__JobKey);
+
+		scheduler.register({
+			name: "__kebab__-job",
+			cron: "* * * * *", // TODO: adjust cron schedule
+			handler: () => job.run(),
+		});
+	}
+
+	bootstrap(): void {}
+}

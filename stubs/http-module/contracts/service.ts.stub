@@ -1,0 +1,12 @@
+import type { Create__Name__Type, __Name__Response } from "../dto";
+
+// This is the file another module is meant to depend on if it needs
+// something from __name__ (via getImportModules() + share()). It
+// deliberately does not import ./repository.ts (the sibling contract), so
+// depending on this file alone never pulls in anything repository-shaped.
+export const __Name__ServiceKey = Symbol("__Name__Service");
+
+export interface I__Name__Service {
+	create(input: Create__Name__Type): Promise<__Name__Response>;
+	list(): Promise<__Name__Response[]>;
+}

@@ -1,6 +1,6 @@
 import jwt, { type SignOptions } from "jsonwebtoken";
 import type { AuthContext } from "../type";
-import type { AuthProvider, TokenIssuer } from "./base";
+import type { IAuthProvider, ITokenIssuer } from "./base";
 import { USER_ROLES, type UserRole } from "../rbac";
 import { authConfig } from "@shared/config/auth";
 
@@ -15,7 +15,7 @@ export interface InternalJwtPayload {
 	exp?: number;
 }
 
-export class InternalAuthProvider implements AuthProvider, TokenIssuer {
+export class InternalAuthProvider implements IAuthProvider, ITokenIssuer {
 	extractToken(headers: Record<string, string | undefined>): string | null {
 		const auth = headers["authorization"];
 		if (!auth?.startsWith("Bearer ")) return null;
@@ -49,5 +49,3 @@ export class InternalAuthProvider implements AuthProvider, TokenIssuer {
 		} as SignOptions);
 	}
 }
-
-export const internalAuthProvider = new InternalAuthProvider();

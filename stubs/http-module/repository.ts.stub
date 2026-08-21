@@ -1,0 +1,22 @@
+import { randomUUID } from "node:crypto";
+import type { I__Name__Repository } from "./contracts/repository";
+import { __Name__ } from "./model";
+import type { Create__Name__Type } from "./dto";
+
+// In-memory placeholder so this module compiles and runs out of the box.
+// Replace with a Drizzle-backed implementation once __name__ has a real
+// table under shared/db/schema — see docs/llm/code-pattern.md §2 for the
+// schema/model/DTO split this repository is expected to bridge.
+export class __Name__Repository implements I__Name__Repository {
+	private readonly _rows = new Map<string, __Name__>();
+
+	async create(input: Create__Name__Type): Promise<__Name__> {
+		const row = new __Name__(randomUUID(), input.name, new Date());
+		this._rows.set(row.id, row);
+		return row;
+	}
+
+	async findAll(): Promise<__Name__[]> {
+		return Array.from(this._rows.values());
+	}
+}

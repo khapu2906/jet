@@ -1,14 +1,14 @@
 import { createMiddleware } from "hono/factory";
-import type { AuthProvider } from "@shared/auth/providers/base";
+import type { IAuthProvider } from "@shared/auth/providers/base";
 import type { RBACUser } from "@fire-shield/core";
 import { Logger } from "@shared/logger";
 import { UnauthorizedError } from "@shared/errors";
 
 /**
  * Extracts and verifies token from Authorization header.
- * Pass an AuthProvider from DI (preferred) or omit to use the default internal provider.
+ * Pass an IAuthProvider from DI (preferred) or omit to use the default internal provider.
  */
-export const authenticate = (provider: AuthProvider) =>
+export const authenticate = (provider: IAuthProvider) =>
 	createMiddleware(async (c, next) => {
 		const headers = Object.fromEntries(
 			["authorization"].map((k) => [k, c.req.header(k)]),

@@ -5,6 +5,10 @@ import type { AuthorizationResult, RBACUser } from "@fire-shield/core";
 import { HonoRBACAdapter } from "@fire-shield/hono";
 import { ForbiddenError } from "@shared/errors";
 
+/**
+ * @link Developer Doc: https://fire-shield.vercel.app/
+ * @link LLM Doc: https://fire-shield.vercel.app/llm
+ */
 export const rbac = new RBAC({ config });
 
 export const rbacAdapter = new HonoRBACAdapter(rbac, {
