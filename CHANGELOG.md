@@ -6,6 +6,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 prior to 0.1.11 predate this file and aren't documented in detail here — see `git log` for
 that history.
 
+## [0.2.1] - 2026-08-21
+
+### Added
+- `docs/apply/getting-started.md` — how to start a new project from a tagged Jet release
+  (`degit`, tarball download, GitHub ZIP, or `git clone --branch`), instead of assuming the
+  reader already has this repo checked out to develop Jet itself. Linked from the README's
+  Getting Started section and the Documentation table.
+- A Docsify-powered documentation site under `docs/` (`index.html`, `_sidebar.md`, `home.md`),
+  mirroring the setup used by ArchSafe's own docs — serves `apply/`/`deeper/`/`llm/` as a
+  browsable, searchable static site with no build step. `npm run docs:dev` serves it locally.
+- `scripts/make/module.js` (+ `scripts/make/utils.js`) — scaffolds a new module from a stub
+  under `stubs/`:
+  - `npm run make:http -- <name>` — full `contracts/{index,service,repository}.ts` +
+    model/dto/repository/service/routes/doc/module.ts shape, matching `auth`. The generated
+    `repository.ts` is an in-memory placeholder so the module compiles and runs immediately,
+    meant to be swapped for a Drizzle-backed one once a real table exists.
+  - `npm run make:worker -- <name>` — `handlers/*.handler.ts` + `module.ts`, plus a starting
+    event definition generated into `shared/event-manager/events/` (and appended to that
+    folder's `index.ts` barrel) rather than inside the module itself — consistent with every
+    other event in the codebase living in that shared catalog, not scattered per-consumer.
+  - `npm run make:scheduler -- <name>` — `contracts.ts` + `job.ts` + `module.ts`, matching
+    `demo-scheduler`.
+  - Refuses to overwrite an existing target; prints the exact import + `_modules[]` line to add
+    to the corresponding `src/processes/*.ts` instead of editing hand-written wiring
+    automatically. Stub files use a `.ts.stub` extension so they aren't mistaken for real
+    source by tsc/eslint/editors. Documented in `docs/apply/modules.md` under "Scaffolding a
+    New Module".
+- README's "Overview" now shows a Mermaid architecture diagram (replacing a static `arch.png`
+  image), illustrating that each process type (`http`/`worker`/`scheduler`) has its own
+  in-memory DI container and which infrastructure (PostgreSQL, Event Bus, Storage) is actually
+  shared cross-process versus per-process only.
+
+### Changed
+- `AppFactory` → `AppRegistry` (`src/shared/factory.ts` → `src/shared/registry.ts`) — the class
+  only registers/looks up the root container and module instances, it never constructs
+  anything, so "Factory" was the wrong pattern name for it. All call sites
+  (`src/processes/{http,worker,scheduler}.ts`, `src/shared/base/processes.ts`) and docs
+  (`docs/apply/modules.md`, `docs/deeper/modules.md`) updated to match.
+
+### Fixed
+- `npm run db:setup` pointed at `scripts/db-setup.js`, which doesn't exist (the actual file is
+  `scripts/db/setup.js`) — the script has been broken since the `scripts/db/` reorganization.
+- README's Project Structure tree still listed `modules/user-scheduler/` (renamed to
+  `demo-scheduler` in an earlier change) and had a second, stale `factory.ts` entry duplicating
+  the one already listed above it.
+- README's Documentation table linked to pre-reorganization flat doc paths
+  (`docs/architecture.md`, `docs/auth.md`, `docs/modules.md`, ...) that no longer exist after
+  the `apply/`/`deeper/` split — rebuilt against the actual current file list.
+
 ## [0.1.16] - 2026-08-19
 
 ### Added
