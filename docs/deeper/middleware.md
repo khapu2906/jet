@@ -105,7 +105,7 @@ Any module resolves it the same way it resolves `DbKey`/`EventBusKey`, and calls
 **during its own `register()`** (i.e. before the server starts accepting traffic):
 
 ```ts
-const rateLimitRegistry = this.container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
+const rateLimitRegistry = this._container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
 rateLimitRegistry.register("/auth/login", {
   limit: 10,
   windowMs: 60_000,
@@ -133,7 +133,7 @@ splits the lifecycle into three explicit phases:
    called after `build()`, since that would mean a request already arrived before this module's
    overrides existed.
 2. `build(defaults)` — called exactly once, in `HttpProcess._setupMiddleware()`, **after**
-   `_initModules()` has already run every module's `register()`. Constructs every
+   `ModuleLoader.load()` has already run every module's `onInit()`. Constructs every
    `hono-rate-limiter` instance (default + every override) up front.
 3. `resolve(path)` — called per-request by the middleware `createRateLimitMiddleware()`
    returns. Pure `Map` lookup against what `build()` already constructed — no construction, no

@@ -24,7 +24,6 @@ import {
 	setupLogging,
 } from "@shared/middleware";
 
-import { EventBus, EventBusKey, createEventBus } from "@shared/event-manager";
 import { config } from "@shared/config";
 import { errorHandler } from "@/shared/errors/handler.err";
 import { storageConfig } from "@/shared/config/storage";
@@ -40,45 +39,28 @@ class HttpProcess extends BaseProcess<Hono> {
 		UserModule,
 	];
 
+	/** Only root modules mount routes; imported modules are loaded, not bootstrapped. */
+	protected async _build(modules: Module[]): Promise<Hono> {
+		const app = new Hono();
+		this._app = app;
 
-	// Only the modules listed in _modules mount routes; modules that are
-	// merely imported by them are loaded but not bootstrapped.
-	private _moduleOrder: Module[] = [];
-
-	async bootstrap(): Promise<Hono> {
-		this._app = new Hono();
-		this._registerCoreDependencies();
-		await this._startInfrastructure();
-
-		await this._initModules();
 		this._setupMiddleware();
 		this._setupSystemRoutes();
-		await this._bootstrapModules();
 
-		return this._app;
-	}
+		for (const module of modules) {
+			const router = await module.start();
 
-	async cleanup() {
-		Logger.info("Shutting down gracefully...");
-
-		try {
-			const eventBus = this._container.resolve<EventBus>(EventBusKey);
-			await eventBus.stop();
-		} catch (error) {
-			Logger.error(`Error stopping EventBus: ${error}`);
+			// Process-defined artifact: this process only mounts Hono apps and
+			// ignores anything meant for another runtime.
+			if (router instanceof Hono) app.route("/", router);
 		}
 
-		await this._loader.cleanup((module, err) =>
-			Logger.error(`Module cleanup error (${module.name}): ${err}`),
-		);
-
-		await this._container.dispose();
+		return app;
 	}
 
-	protected _registerCoreDependencies() {
+	protected async _registerCoreDependencies() {
+		await this._enableEventBus();
 		this._container.singleton(DbKey, () => db);
-		const eventBus = createEventBus();
-		this._container.singleton(EventBusKey, () => eventBus);
 		this._container.singleton(StorageKey, () => new LocalStorage(
 			storageConfig.local.dir,
 			storageConfig.local.baseUrl,
@@ -88,16 +70,6 @@ class HttpProcess extends BaseProcess<Hono> {
 		this._container.singleton(RateLimitRegistryKey, () => rateLimitRegistry);
 	}
 
-	protected async _initModules() {
-		this._moduleOrder = await super._initModules();
-		return this._moduleOrder;
-	}
-
-	private async _startInfrastructure() {
-		const eventBus: EventBus = this._container.resolve(EventBusKey);
-		await eventBus.start();
-	}
-
 	private _setupMiddleware() {
 		this._app.use("*", requestId());
 		this._app.use("*", setupCors());
@@ -105,10 +77,9 @@ class HttpProcess extends BaseProcess<Hono> {
 		this._app.use("*", setupContentSecurityPolicy());
 		this._app.use("*", setupLogging());
 
-		// Built once here, after every module's register() has already run
-		// (see _initModules() above) — so all per-route overrides registered
-		// via RateLimitRegistry.register() are already in place before this
-		// middleware is constructed.
+		// Built once here, after every module's onInit() has already run — so
+		// all per-route overrides registered via RateLimitRegistry.register()
+		// are already in place before this middleware is constructed.
 		const rateLimitRegistry =
 			this._container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
 		this._app.use("*", createRateLimitMiddleware(rateLimitRegistry));
@@ -127,16 +98,6 @@ class HttpProcess extends BaseProcess<Hono> {
 		if (storageConfig.provider === "local") {
 			const localStorage = this._container.resolve<LocalStorage>(StorageKey);
 			this._app.route("/storage", localStorage.createRouter("/storage"));
-		}
-	}
-
-	private async _bootstrapModules() {
-		for (const module of this._moduleOrder) {
-			const router = await module.bootstrap();
-
-			if (router) {
-				this._app.route("/", router);
-			}
 		}
 	}
 }

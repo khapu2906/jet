@@ -63,7 +63,7 @@ const rateLimitDefaults: RateLimitDefaults = {
  * Builds the global rate limiting middleware from a container-managed
  * `RateLimitRegistry`. Call once, from `HttpProcess._setupMiddleware()`,
  * after all modules have finished registering their per-route overrides
- * (during `_initModules()` → module `register()`) — this is what triggers
+ * (during `ModuleLoader.load()` → module `onInit()`) — this is what triggers
  * `registry.build()`, constructing every limiter instance up front so the
  * request path only ever does a pure lookup, never lazy construction.
  *

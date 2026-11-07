@@ -12,16 +12,16 @@ class A extends Module {
 	readonly name = "a";
 	register() {
 		events.push("register:a");
-		this.container.singleton(PrivateKey, () => ({ secret: true }));
+		this._container.singleton(PrivateKey, () => ({ secret: true }));
 	}
 	share(to: Container) {
-		to.singleton(PublicKey, () => this.container.resolve(PrivateKey));
+		to.singleton(PublicKey, () => this._container.resolve(PrivateKey));
 	}
 	async onInit() {
 		events.push("onInit:a");
 	}
-	bootstrap() {
-		events.push("bootstrap:a");
+	start() {
+		events.push("start:a");
 	}
 }
 
@@ -46,10 +46,10 @@ class B extends Module {
 	assert.equal(typeof b.getContainer().resolve(PublicKey), "object");
 	assert.throws(() => b.getContainer().resolve(PrivateKey));
 
-	// Activated root gets onInit (bootstrap is called by the process, not the loader).
+	// Activated root gets onInit (start is called by the process, not the loader).
 	await loader.load([A]);
 	assert.ok(events.includes("onInit:a"));
-	assert.ok(!events.includes("bootstrap:a"));
+	assert.ok(!events.includes("start:a"));
 
 	// Import cycle is reported.
 	class X extends Module {
@@ -112,6 +112,22 @@ class B extends Module {
 		user.createUser({ email: "a@b.co", password: "password123" }),
 		(error) => error === dbReached
 	);
+
+	// Artifact contract: start() output is process-defined, so a process
+	// mounts only what it understands (same rule as HttpProcess._build).
+	const { Hono } = await import("hono");
+	const app = new Hono();
+	for (const module of userRoots) {
+		const artifact = await module.start();
+		if (artifact instanceof Hono) app.route("/", artifact);
+	}
+
+	const response = await app.request("/users/register", {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: "{}",
+	});
+	assert.equal(response.status, 400);
 
 	console.log("module-loader: ok");
 })();

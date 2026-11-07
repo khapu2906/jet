@@ -108,7 +108,7 @@ or in `HttpProcess._registerCoreDependencies()` (`src/processes/http.ts`, alongs
 `DbKey`/`EventBusKey`) if routes in *other* modules need it too:
 
 ```ts
-this.container.bind(AuthProviderKey, () => new GoogleAuthProvider());
+this._container.bind(AuthProviderKey, () => new GoogleAuthProvider());
 ```
 
 **5. Wire it into a route** — `shared/auth/middleware.ts` already exports `authenticate(provider)`

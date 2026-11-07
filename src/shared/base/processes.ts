@@ -1,5 +1,11 @@
 import { Container } from "@khapu2906/treasure-chest";
 import { AppRegistry } from "@shared/registry";
+import { Logger } from "@shared/logger";
+import {
+	EventBusKey,
+	createEventBus,
+	type EventBus,
+} from "@shared/event-manager";
 import type { Module, ModuleConstructor } from "./modules";
 import { ModuleLoader } from "./module-loader";
 
@@ -8,32 +14,66 @@ export abstract class BaseProcess<T = void> {
 
 	protected _modules: ModuleConstructor[] = [];
 
-	protected readonly _container: Container = AppRegistry.rootContainer;
+	// One child per process: with PROCESS_TYPE=* core bindings must not clobber
+	// each other (treasure-chest resolves the first binding for a key). The
+	// root stays the shared parent for any future cross-process singleton.
+	protected readonly _container: Container =
+		AppRegistry.rootContainer.createChild();
 
 	protected readonly _loader = new ModuleLoader(this._container, (m) =>
 		AppRegistry.setModule(m.name, m),
 	);
 
-	/**
-	 * Bootstrap the application
-	 */
-	abstract bootstrap(): Promise<T>;
+	// Owned per process: cleanup stops exactly the bus this process started.
+	private _eventBus: EventBus | null = null;
 
 	/**
-	 * Cleanup resources gracefully
+	 * Bind process-specific singletons. Called before modules load.
 	 */
-	abstract cleanup(): Promise<void>;
+	protected abstract _registerCoreDependencies(): void | Promise<void>;
 
 	/**
-	 * Register core dependencies into the container
+	 * Build the process app from its activated root modules (imports
+	 * included, in load order). Runs once, after every `register()`/`onInit()`.
 	 */
-	protected abstract _registerCoreDependencies(): void;
+	protected abstract _build(modules: Module[]): Promise<T>;
 
 	/**
-	 * Initialize all modules (and the modules they import)
+	 * Opt-in: create, bind and start this process's EventBus. Call it from
+	 * `_registerCoreDependencies()`; processes that don't use events skip it.
 	 */
-	protected _initModules(): Promise<Module[]> {
-		return this._loader.load(this._modules);
+	protected async _enableEventBus(): Promise<void> {
+		const eventBus = createEventBus();
+		this._eventBus = eventBus;
+		this._container.singleton(EventBusKey, () => eventBus);
+		await eventBus.start();
+	}
+
+	async bootstrap(): Promise<T> {
+		await this._registerCoreDependencies();
+
+		this._app = await this._build(await this._loader.load(this._modules));
+		return this._app;
+	}
+
+	/**
+	 * Process-specific shutdown that must run before modules are torn down
+	 * (stop taking new work: cron ticks, consumers).
+	 */
+	protected async _onCleanup(): Promise<void> {}
+
+	async cleanup(): Promise<void> {
+		try {
+			await this._eventBus?.stop();
+		} catch (error) {
+			Logger.error(`Error stopping EventBus: ${error}`);
+		}
+
+		await this._onCleanup();
+
+		await this._loader.cleanup((module, error) =>
+			Logger.error(`Module cleanup error (${module.name}): ${error}`),
+		);
 	}
 }
 

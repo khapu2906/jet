@@ -1,6 +1,6 @@
 {
 	"name": "jet",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"private": true,
 	"author": {
 		"name": "Kent Phung",
@@ -17,7 +17,7 @@
 		"lint": "eslint src --ext .ts,.tsx",
 		"lint:fix": "eslint src --ext .ts,.tsx --fix",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
-		"test:modules": "tsx tests/module-loader.check.ts",
+		"test": "tsx tests/module-loader.check.ts && tsx tests/base-process.check.ts",
 		"arch:check": "archsafe --config archsafe.config.mts",
 		"arch:baseline": "archsafe baseline --config archsafe.config.mts",
 		"docs:dev": "npx --yes serve docs",

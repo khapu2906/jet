@@ -8,7 +8,7 @@ import type { Module, ModuleConstructor } from "./modules";
  * - `share(to)` writes a module's public surface into the importer's container,
  *   so those instances belong to the importer, not to the exporter.
  * - Imports load first, whatever order `roots` is in.
- * - `onInit()`/`bootstrap()` run only for `roots`, never for imported modules.
+ * - `onInit()`/`start()` run only for `roots`, never for imported modules.
  */
 export class ModuleLoader {
 	private readonly _instances: Module[] = [];

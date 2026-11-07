@@ -22,13 +22,13 @@ export class UserModule extends Module {
 	share(to: Container): void {
 		to.bind(
 			UserServiceKey,
-			() => new UserService(this.container.resolve(AuthServiceKey)),
+			() => new UserService(this._container.resolve(AuthServiceKey)),
 		);
 	}
 
-	bootstrap() {
+	start() {
 		const app = new Hono();
-		app.route("/users", createUserRoutes(this.container));
+		app.route("/users", createUserRoutes(this._container));
 		return app;
 	}
 }

@@ -6,16 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 prior to 0.1.11 predate this file and aren't documented in detail here — see `git log` for
 that history.
 
-## [Unreleased]
+## [0.3.0] - 2026-11-07
 
 ### Changed
+- **Breaking:** `Module.bootstrap()` renamed to `Module.start()`, so it no longer collides with
+  `BaseProcess.bootstrap()` (which starts a whole process). The module lifecycle now reads
+  `register()` → `share(to)` → `onInit()` → `start()` → `onDestroy()`.
+- **Breaking:** `Module`'s protected `container` field renamed to `_container` (and made
+  `readonly`), matching the `_`-prefixed internals used everywhere else.
 - Module wiring split into `register()` (private deps, own container) and `share(to)` (public
   surface, written into the importer's container). The shared service's lifecycle is now decided
   by the importer's container, and instances written into `to` belong to the importer — not to
   the exporter.
 - `ModuleLoader` (`src/shared/base/module-loader.ts`) now loads every module into its own child
   container, orders imports before the importing module, and calls a dependency's `share(to)`
-  with the importer's container. `onInit()`/`bootstrap()` run only for modules listed in a
+  with the importer's container. `onInit()`/`start()` run only for modules listed in a
   process's `_modules[]`, never for modules that are merely imported; `onDestroy()` +
   `container.dispose()` run on cleanup in reverse load order.
 - `register()` is now pure wiring. Side effects moved to `onInit()` so importing a module is
@@ -23,9 +28,29 @@ that history.
   - `AuthModule`: rate-limit registration moved to `onInit()`; `AuthServiceKey` is bound in
     `share(to)` while the repository and token issuer stay private in `register()`.
   - `DemoSchedulerModule`: job is bound in `register()`; cron registration moved to `onInit()`.
-- `BaseProcess` now owns the shared `ModuleLoader` and `_initModules()` (returns the activated
-  root modules). `http`/`worker`/`scheduler` no longer hand-roll module init; `http` still
-  overrides `_initModules()` only to keep the list of modules that mount routes.
+- `BaseProcess` now owns the `ModuleLoader` and the module-load/teardown sequence; the
+  `http`/`worker`/`scheduler` processes no longer hand-roll module init.
+- `BaseProcess._container` is now a **child container per process**, with
+  `AppRegistry.rootContainer` kept only as the shared parent. This stops one process's core
+  bindings (`EventBusKey`, `DbKey`, `SchedulerKey`, …) from clobbering another's when several
+  processes share one Node process (`PROCESS_TYPE=*`), since `treasure-chest` resolves the
+  first binding for a key.
+- `Module.start()` now returns `unknown` instead of a Hono app: `shared/base/modules.ts`
+  no longer imports any app framework, and each process mounts only the artifacts it
+  understands (`HttpProcess` checks `instanceof Hono`). Adding another runtime (e.g. a
+  socket.io process) needs no change to `shared/base`.
+- `BaseProcess` is now a full process template: it calls `_registerCoreDependencies()` →
+  `ModuleLoader.load()` → `_build(modules)`, and tears the modules down on cleanup. Processes
+  only implement `_registerCoreDependencies()`, `_build(modules)` and (optionally)
+  `_onCleanup()`, instead of each re-declaring `bootstrap()`/`cleanup()` with the same
+  module-load/teardown skeleton. The EventBus is **opt-in** via `_enableEventBus()` (create,
+  bind + start), so a process that uses no events doesn't get one. `HttpProcess` no longer
+  calls `container.dispose()` on its container (it only disposes scoped instances, of which
+  none are registered).
+
+### Added
+- `tests/base-process.check.ts` (opt-in EventBus, per-process container isolation) and an
+  `npm test` script running every `tests/*.check.ts`. Replaces `npm run test:modules`.
 
 ### Deprecated
 - `Module.getImportModules()` — use the `imports` field (`imports: ModuleConstructor[]`).

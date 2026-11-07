@@ -15,8 +15,8 @@ export class AuthModule extends Module {
 
 	register(): void {
 		// Private: only auth's own container sees these.
-		this.container.bind(TokenIssuerKey, () => new InternalAuthProvider());
-		this.container.bind(AuthRepositoryKey, (c) =>
+		this._container.bind(TokenIssuerKey, () => new InternalAuthProvider());
+		this._container.bind(AuthRepositoryKey, (c) =>
 			new AuthRepository(c.resolve(DbKey)),
 		);
 	}
@@ -25,8 +25,8 @@ export class AuthModule extends Module {
 		// Public: whatever module imports auth gets AuthServiceKey.
 		to.bind(AuthServiceKey, () =>
 			new AuthService(
-				this.container.resolve(AuthRepositoryKey),
-				this.container.resolve(TokenIssuerKey),
+				this._container.resolve(AuthRepositoryKey),
+				this._container.resolve(TokenIssuerKey),
 			),
 		);
 	}
@@ -37,14 +37,14 @@ export class AuthModule extends Module {
 		// the app-wide default — otherwise a script can spam account creation
 		// well within the generic per-IP quota.
 		const rateLimitRegistry =
-			this.container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
+			this._container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
 		rateLimitRegistry.register("/auth/register", { limit: 5, windowMs: 60_000 });
 		rateLimitRegistry.register("/auth/login", { limit: 10, windowMs: 60_000 });
 	}
 
-	bootstrap() {
+	start() {
 		const app = new Hono();
-		app.route("/auth", createAuthRoutes(this.container));
+		app.route("/auth", createAuthRoutes(this._container));
 		return app;
 	}
 }

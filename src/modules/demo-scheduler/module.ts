@@ -7,12 +7,12 @@ export class DemoSchedulerModule extends Module {
 	readonly name = "demo-scheduler";
 
 	register(): void {
-		this.container.singleton(DemoJobKey, () => new DemoJob());
+		this._container.singleton(DemoJobKey, () => new DemoJob());
 	}
 
 	async onInit(): Promise<void> {
-		const scheduler = this.container.resolve<ISchedulerManager>(SchedulerKey);
-		const demoJob = this.container.resolve<IDemoJob>(DemoJobKey);
+		const scheduler = this._container.resolve<ISchedulerManager>(SchedulerKey);
+		const demoJob = this._container.resolve<IDemoJob>(DemoJobKey);
 
 		scheduler.register({
 			name: "demo-say-hello-every-minute",

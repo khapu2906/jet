@@ -8,10 +8,11 @@ For `PROCESS_TYPE` values, worker scaling config, and directory layout, see `doc
 index.ts
   └─ PROCESS_TYPE → HttpProcess | WorkerProcess | SchedulerProcess
         └─ BaseProcess
-              1. _registerCoreDependencies()   ← DB, EventBus
-              2. _initModules()                ← register() + onInit()
-              3. bootstrap()                   ← start server / start consumer / start scheduler
-              4. SIGTERM / SIGINT → cleanup()  ← graceful shutdown
+              1. _registerCoreDependencies()   ← process-specific singletons (DB, SchedulerManager)
+                                                 + optional `_enableEventBus()`
+              2. ModuleLoader.load(_modules)   ← register() + onInit() per module
+              3. _build(modules)               ← app-specific: middleware/routes, start consumer, log jobs
+              4. SIGTERM / SIGINT → cleanup()  ← eventBus.stop() (if enabled) → _onCleanup() → module teardown
 ```
 
 Each process type is responsible for only one concern:
@@ -28,8 +29,10 @@ Each feature is encapsulated in a `Module` class:
 
 ```ts
 class AuthModule extends Module {
-  register()    // bind services into DI container
-  bootstrap()   // start runtime logic (HTTP routes, consumers, etc.)
+  register()    // private wiring into its own container (pure, no side effects)
+  share(to)     // public surface for importers
+  onInit()      // side effects; root modules only
+  start()       // hand the process something to run (HTTP router, consumer, …)
   onDestroy()   // cleanup resources
 }
 ```

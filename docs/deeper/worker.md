@@ -5,10 +5,9 @@ For the EventBus API, existing event definitions, and how to subscribe/publish, 
 ## Bootstrap Sequence
 
 ```
-1. _registerCoreDependencies()  → create + bind EventBus (db singleton also bound, currently unused)
-2. _initModules()               → register() for each module in _modules[] (subscriptions
-                                   are set up here, during module.register())
-3. eventBus.start()
+1. _registerCoreDependencies()  → _enableEventBus(); db singleton also bound (currently unused)
+2. ModuleLoader.load()          → register() + onInit() for each module in _modules[]
+                                   (subscriptions go in onInit())
 ```
 
 ## The in-memory transport does not cross process boundaries
@@ -17,8 +16,8 @@ Only `EVENT_BUS_TYPE=memory` is currently supported (`redis`/queue fields exist 
 `EventBusConfig` for a future backend, but no such backend is registered yet via
 `registerEventBus()`).
 
-**Important:** each process (`http`, `worker`, `scheduler`) calls `createEventBus()`
-independently in its own `_registerCoreDependencies()` and gets its **own, separate**
+**Important:** each process (`http`, `worker`, `scheduler`) calls `_enableEventBus()` (which
+calls `createEventBus()`) independently and gets its **own, separate**
 in-memory bus instance — even when they all run in the same `PROCESS_TYPE=*` Node process.
 With the current `memory` transport, publishing an event in the HTTP process does **not**
 reach the worker process, because there is no shared object or channel between the two

@@ -8,13 +8,13 @@ For the practical how-to (creating/registering a module, built-in routes), see `
 register()   → bind this module's private deps into its own container
 share(to)    → bind this module's public surface into the importer's container
 onInit()     → side effects (activated modules only)
-bootstrap()  → mount routes / start consumers (activated modules only)
+start()      → hand the process something to run (activated modules only)
 onDestroy()  → cleanup on SIGTERM/SIGINT (activated modules only)
 ```
 
 Loading is done by `ModuleLoader` (`src/shared/base/module-loader.ts`), shared by the http,
 worker and scheduler processes. It walks `imports` depth-first, gives every module its **own
-child container** of the process root, and orders loading so imports come first. For each
+child container** of the process's container, and orders loading so imports come first. For each
 import it calls the dependency's `share(to)` with the importer's container:
 
 ```ts
@@ -27,8 +27,10 @@ inside `share(to)`, i.e. by the importer's container. Cleanup runs in reverse or
 module failing does not stop the rest.
 
 The loader calls `register()` + `share()` on every loaded module, then `onInit()` on the
-activated roots. `bootstrap()` is called by the process (http mounts the returned Hono app),
-and `onDestroy()` + `container.dispose()` by `ModuleLoader.cleanup()`.
+activated roots. `start()` is called by the process, which decides what to do with the
+returned value: the http process mounts it if it is a Hono app (and ignores artifacts meant
+for another runtime), so `shared/base` never imports an app framework. `onDestroy()` +
+`container.dispose()` are called by `ModuleLoader.cleanup()`.
 
 ## Accessing Services Across Modules — `imports` + `share(to)`
 
@@ -51,7 +53,7 @@ of a shared service; the unit of scope is the service key.
 
 ## The DI container underneath: `@khapu2906/treasure-chest`
 
-`this.container` (and `AppRegistry.rootContainer`) is an instance of `Container` from this
+`this._container` (and `AppRegistry.rootContainer`) is an instance of `Container` from this
 package. `Module`'s `container.bind(...)`/`.singleton(...)` calls used throughout the codebase
 are only two of several lifecycles it actually supports:
 

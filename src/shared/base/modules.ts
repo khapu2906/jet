@@ -1,4 +1,3 @@
-import type { Hono } from "hono";
 import { Container } from "@khapu2906/treasure-chest";
 
 export type ModuleConstructor = new (container: Container) => Module;
@@ -9,10 +8,10 @@ export abstract class Module {
 	/** Modules this one depends on (classes). Loaded before this module. */
 	readonly imports: ModuleConstructor[] = [];
 
-	protected container: Container;
+	protected readonly _container: Container;
 
 	constructor(container: Container) {
-		this.container = container;
+		this._container = container;
 	}
 
 	/**
@@ -23,7 +22,7 @@ export abstract class Module {
 
 	/**
 	 * Public surface: bind the keys another module may consume into `to`
-	 * (the importer's container). Resolve private deps from `this.container`.
+	 * (the importer's container). Resolve private deps from `this._container`.
 	 */
 	share(_to: Container): void | Promise<void> {}
 
@@ -34,9 +33,11 @@ export abstract class Module {
 	async onInit(): Promise<void> {}
 
 	/**
-	 * Mount routes / start consumers. Runs only for `_modules` entries.
+	 * Hand the process something to run (an HTTP router, a socket namespace,
+	 * a consumer…). The shape is process-defined: `shared/base` stays free of
+	 * any runtime, and each process mounts only the artifacts it understands.
 	 */
-	bootstrap(): Hono | void | Promise<Hono | void> {
+	start(): unknown | Promise<unknown> {
 		return undefined;
 	}
 
@@ -46,6 +47,6 @@ export abstract class Module {
 	async onDestroy(): Promise<void> {}
 
 	getContainer() {
-		return this.container;
+		return this._container;
 	}
 }

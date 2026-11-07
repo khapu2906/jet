@@ -48,14 +48,14 @@ export class MyModule extends Module {
 
   // Private: what THIS module needs. Bind into your own container only.
   register(): void {
-    this.container.bind(MyRepositoryKey, (c) => new MyRepository(c.resolve(DbKey)))
+    this._container.bind(MyRepositoryKey, (c) => new MyRepository(c.resolve(DbKey)))
   }
 
   // Public: what modules importing you may resolve. Bind into `to` — the
   // importer's container — so the instance belongs to the importer.
   share(to: Container): void {
     to.bind(MyServiceKey, () => new MyService(
-      this.container.resolve(MyRepositoryKey),   // private dep, from your own container
+      this._container.resolve(MyRepositoryKey),   // private dep, from your own container
       to.resolve(OtherServiceKey),               // dep from a module you import
     ))
   }
@@ -65,9 +65,9 @@ export class MyModule extends Module {
   async onInit(): Promise<void> {}
 
   // Mount routes, return Hono app. Runs only for _modules[] entries.
-  bootstrap() {
+  start() {
     const app = new Hono()
-    app.route("/my", createMyRoutes(this.container))
+    app.route("/my", createMyRoutes(this._container))
     return app
   }
 
@@ -100,12 +100,12 @@ key into its `to` in `share(to)`.
 ```ts
 // other/module.ts
 share(to: Container): void {
-  to.bind(OtherServiceKey, () => new OtherService(/* private deps from this.container */))
+  to.bind(OtherServiceKey, () => new OtherService(/* private deps from this._container */))
 }
 
 // my/module.ts
 readonly imports = [OtherModule]
-// ...then in register()/bootstrap(): this.container.resolve<IOtherService>(OtherServiceKey)
+// ...then in register()/start(): this._container.resolve<IOtherService>(OtherServiceKey)
 ```
 
 - The importer owns the service: `share(to)` writes into the importer's container,
@@ -113,7 +113,7 @@ readonly imports = [OtherModule]
 - A key not put into `to` never reaches the importer — private is enforced at runtime,
   not just by ArchSafe.
 - An import cycle fails at startup with the full path, e.g. `a -> b -> a`.
-- Importing a module does not activate it: `onInit()` and `bootstrap()` run only for
+- Importing a module does not activate it: `onInit()` and `start()` run only for
   modules listed in the process's `_modules[]`.
 - `register()` is pure wiring; put side effects in `onInit()` so importing a module
   is cheap and cannot crash on a process-specific dependency.

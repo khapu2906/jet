@@ -25,7 +25,7 @@ modules/<name>/
 ├── service.ts     # Business logic — implements IXService, throws AppError subclasses, does NOT touch SQL
 ├── routes.ts      # Hono routes — calls the service, contains NO business logic
 ├── doc.ts         # OpenAPI description object (tag, request, response schema) for hono-openapi
-└── module.ts      # Wiring: register() binds DI, bootstrap() mounts routes, `imports` + `share(to)` declare dependencies on and exposure to other modules
+└── module.ts      # Wiring: register() binds DI, start() mounts routes, `imports` + `share(to)` declare dependencies on and exposure to other modules
 ```
 
 **Why the interface is a separate file from its implementation** (`contracts/repository.ts` vs.
@@ -171,7 +171,7 @@ name, matching every other cross-cutting service:
 this._container.singleton(RateLimitRegistryKey, () => new RateLimitRegistry());
 
 // src/modules/auth/module.ts — register()
-const rateLimitRegistry = this.container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
+const rateLimitRegistry = this._container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
 rateLimitRegistry.register("/auth/login", { limit: 10, windowMs: 60_000 });
 ```
 
@@ -220,15 +220,14 @@ happens.
 > directly (predates this convention). Treat it as legacy, not a pattern to copy; new modules
 > use `validate()`/`getValidatedData()`.
 
-## 7. Testing — not set up yet
+## 7. Testing — minimal
 
-There is a `tests/` folder at the project root, but it's currently **empty**, and no test
-runner is installed (`vitest` is not in `package.json`, and there's no `test` script). Don't
-assume Vitest, a `tests/unit`+`tests/integration` split, or any test-specific `tsconfig` exists
-in this repo — none of that is wired up today, unlike everything else in this document. Only
-one `tsconfig.json` exists.
+No test runner is installed (no Vitest/Jest). `tests/` holds plain assert-based checks
+(`*.check.ts`, `node:assert/strict`), each runnable with `npx tsx tests/<file>`; `npm test` runs
+all of them. Don't assume a `tests/unit`+`tests/integration` split or a test-specific
+`tsconfig` — only one `tsconfig.json` exists.
 
-If/when testing is set up for this project, keep tests out of `src/` (a separate `tests/` tree
+When adding tests, keep tests out of `src/` (a separate `tests/` tree
 mirroring `src/`'s structure is the intended shape, importing via the `@modules/*`/`@shared/*`
 path aliases already configured in `tsconfig.json` — never a relative import like `./service`),
 and prefer mocking the `IXRepository`/`IXService` interfaces from each module's
