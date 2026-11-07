@@ -5,13 +5,13 @@ For the system routes table and config, see `docs/apply/http.md`.
 ## Bootstrap Sequence
 
 ```
-1. _registerCoreDependencies()  → bind DB, create + bind EventBus
-2. _startInfrastructure()       → eventBus.start()
-3. _initModules()               → register() + onInit() for each module in _modules[]
-4. _setupMiddleware()           → global middleware stack (see docs/deeper/middleware.md)
-5. _setupSystemRoutes()         → /favicon.ico, /docs/*, /storage/*
-6. _bootstrapModules()          → module.bootstrap() → mount each module's router
-7. serve()                      → start listening on config.hostname:config.port
+1. _registerCoreDependencies()  → _enableEventBus(), bind DB, storage, rate-limit registry
+2. ModuleLoader.load()          → register() + onInit() for each module in _modules[]
+3. _build(modules):
+     a. _setupMiddleware()      → global middleware stack (see docs/deeper/middleware.md)
+     b. _setupSystemRoutes()    → /favicon.ico, /docs/*, /storage/*
+     c. module.start()         → mount each root module's router
+4. serve()                      → start listening on config.hostname:config.port
 ```
 
 ## Graceful Shutdown
@@ -26,9 +26,9 @@ On `SIGTERM`/`SIGINT`, the process stops in two phases so an in-flight request i
                                   the full grace period for fast requests)
 3. after 3s (grace period)     → any connection still open is force-closed via
                                   closeAllConnections()
-4. proc.cleanup()              → eventBus.stop(), then each module's cleanup()
-                                  in reverse registration order, then
-                                  container.dispose()
+4. proc.cleanup()              → eventBus.stop(), then ModuleLoader.cleanup()
+                                  → each module's onDestroy() + container.dispose(),
+                                  in reverse load order
 ```
 
 The 3s grace period matters because Node's `server.close()` alone waits for **every** socket

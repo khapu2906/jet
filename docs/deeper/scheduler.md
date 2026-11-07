@@ -5,11 +5,10 @@ For the `SchedulerManager` API and how to define a job, see `docs/apply/schedule
 ## Bootstrap Sequence
 
 ```
-1. _registerCoreDependencies()  → create + bind EventBus, create + bind SchedulerManager
-2. _initModules()               → register() for each module in _modules[] (jobs are
-                                   registered here, synchronously, during module.register())
-3. eventBus.start()
-4. Log loaded modules + registered job names
+1. _registerCoreDependencies()  → _enableEventBus(), create + bind SchedulerManager
+2. ModuleLoader.load()          → register() + onInit() for each module in _modules[];
+                                   jobs are registered in module.onInit()
+3. _build()                     → log loaded modules + registered job names
 ```
 
 `_modules` currently includes only `DemoSchedulerModule` (a working example).
@@ -58,7 +57,7 @@ On `SIGTERM`/`SIGINT`:
                          currently executing to finish, then cancels all
                          scheduled triggers
 2. eventBus.stop()
-3. module.cleanup()   → for each module, in reverse registration order
+3. ModuleLoader.cleanup() → each module's onDestroy() + container.dispose(), in reverse load order
 ```
 
 Waiting for the in-flight job to finish (rather than cancelling it outright) matters because

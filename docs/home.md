@@ -8,8 +8,7 @@ mechanics/rationale) — one pair per topic:
 - **[Architecture](apply/architecture.md)** ([deeper](deeper/architecture.md)) — process types
   (`http`/`worker`/`scheduler`), directory layout, request/worker/scheduler flow.
 - **[Modules](apply/modules.md)** ([deeper](deeper/modules.md)) — the `Module` lifecycle, DI
-  container, cross-module access (`getImportModules()` vs the `AppRegistry.getModule()` escape
-  hatch).
+  container, cross-module access (`imports` + `share(to)`; `getImportModules()`/`AppRegistry.getModule()` deprecated).
 - **[Auth](apply/auth.md)** ([deeper](deeper/auth.md)) — JWT payload, RBAC, register/login flow,
   adding a new auth provider.
 - **[HTTP](apply/http.md)** ([deeper](deeper/http.md)) — HTTP process bootstrap, middleware

@@ -1,73 +1,35 @@
 import { BaseProcess, Runner } from "@/shared/base/processes";
-import type { ModuleConstructor } from "@/shared/base/modules";
+
 import { Logger, LoggerUI } from "@shared/logger";
-import { AppRegistry } from "@shared/registry";
-import { createEventBus, EventBus, EventBusKey } from "@/shared/event-manager";
 import { SchedulerManager } from "@/shared/scheduler/manager";
 import { SchedulerKey, type ISchedulerManager } from "@/shared/scheduler/contracts";
 import { DemoSchedulerModule } from "@/modules/demo-scheduler/module";
 
 class SchedulerProcess extends BaseProcess<void> {
-	protected _modules: ModuleConstructor[] = [DemoSchedulerModule];
+	protected _modules = [DemoSchedulerModule];
 
-	async bootstrap(): Promise<void> {
-		this._registerCoreDependencies();
-		this._initModules();
+	protected async _registerCoreDependencies() {
+		await this._enableEventBus();
+		this._container.singleton(SchedulerKey, () => new SchedulerManager());
+	}
 
-		const eventBus: EventBus = this._container.resolve(EventBusKey);
-		await eventBus.start();
+	protected async _onCleanup(): Promise<void> {
+		try {
+			await this._container.resolve<ISchedulerManager>(SchedulerKey).stop();
+		} catch (error) {
+			Logger.error(`Error stopping Scheduler: ${error}`);
+		}
+	}
 
-		const scheduler =
-			AppRegistry.rootContainer.resolve<ISchedulerManager>(SchedulerKey);
-		const jobs = scheduler.listJobs();
+	protected async _build(): Promise<void> {
+		const jobs =
+			this._container.resolve<ISchedulerManager>(SchedulerKey).listJobs();
 
 		Logger.info("Scheduler process started");
 		Logger.info(
 			`Loaded ${this._modules.length} modules, ${jobs.length} jobs registered`,
 		);
 		Logger.info(`Active jobs: ${jobs.join(", ")}`);
-	}
-
-	async cleanup(): Promise<void> {
-		try {
-			const scheduler =
-				AppRegistry.rootContainer.resolve<ISchedulerManager>(SchedulerKey);
-			await scheduler.stop();
-
-			const eventBus = this._container.resolve<EventBus>(EventBusKey);
-			await eventBus.stop();
-		} catch (error) {
-			Logger.error(`Error stopping Scheduler: ${error}`);
-		}
-
-		const moduleInstances = Array.from(
-			AppRegistry.importModuleInstances.values(),
-		).reverse();
-
-		for (const module of moduleInstances) {
-			if (module.cleanup) {
-				try {
-					await module.cleanup();
-				} catch (error) {
-					Logger.error(`Error cleaning up ${module.name}: ${error}`);
-				}
-			}
-		}
-	}
-
-	protected _registerCoreDependencies() {
-		const eventBus = createEventBus();
-		const schedulerManager = new SchedulerManager();
-		this._container.singleton(SchedulerKey, () => schedulerManager);
-		this._container.singleton(EventBusKey, () => eventBus);
-	}
-
-	protected _initModules() {
-		this._modules.forEach((ModuleClass) => {
-			const instance = new ModuleClass(AppRegistry.rootContainer.createChild());
-			instance.register();
-			AppRegistry.setModule(instance.name, instance);
-		});
 	}
 }
 

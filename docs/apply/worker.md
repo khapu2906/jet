@@ -40,7 +40,7 @@ export class WelcomeEmailModule extends Module {
   readonly name = "welcome-email";
 
   register(): void {
-    const eventBus = this.container.resolve<EventBus>(EventBusKey);
+    const eventBus = this._container.resolve<EventBus>(EventBusKey);
 
     eventBus.subscribe({
       eventName: UserCreated.name,
@@ -52,7 +52,7 @@ export class WelcomeEmailModule extends Module {
     });
   }
 
-  bootstrap(): void {}
+  start(): void {}
 }
 ```
 

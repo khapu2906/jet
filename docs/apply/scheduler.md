@@ -34,7 +34,7 @@ export class DemoSchedulerModule extends Module {
   readonly name = "demo-scheduler";
 
   register(): void {
-    const scheduler = this.container.resolve<ISchedulerManager>(SchedulerKey);
+    const scheduler = this._container.resolve<ISchedulerManager>(SchedulerKey);
 
     scheduler.register({
       name: "demo-say-hello-every-minute",
@@ -43,7 +43,7 @@ export class DemoSchedulerModule extends Module {
     });
   }
 
-  bootstrap(): void {}
+  start(): void {}
 }
 ```
 

@@ -1,59 +1,19 @@
 import { db } from "@shared/db";
 import { BaseProcess, Runner } from "@/shared/base/processes";
-import type { ModuleConstructor } from "@/shared/base/modules";
+
 import { Logger, LoggerUI } from "@shared/logger";
-import { AppRegistry } from "@shared/registry";
-import { EventBus, EventBusKey, createEventBus } from "@shared/event-manager";
 
 class WorkerProcess extends BaseProcess<void> {
-	protected _modules: ModuleConstructor[] = [];
+	protected _modules = [];
 
-	async bootstrap(): Promise<void> {
-		this._registerCoreDependencies();
-		this._initModules();
+	protected async _registerCoreDependencies() {
+		await this._enableEventBus();
+		this._container.singleton("db", () => db);
+	}
 
-		const eventBus: EventBus = AppRegistry.rootContainer.resolve(EventBusKey);
-		await eventBus.start();
-
+	protected async _build(): Promise<void> {
 		Logger.info("Worker process started — consuming events from queue");
 		Logger.info(`Loaded ${this._modules.length} modules`);
-	}
-
-	async cleanup(): Promise<void> {
-		try {
-			const eventBus = AppRegistry.rootContainer.resolve<EventBus>(EventBusKey);
-			await eventBus.stop();
-		} catch (error) {
-			Logger.error(`Error stopping EventBus: ${error}`);
-		}
-
-		const moduleInstances = Array.from(
-			AppRegistry.importModuleInstances.values(),
-		).reverse();
-
-		for (const module of moduleInstances) {
-			if (module.cleanup) {
-				try {
-					await module.cleanup();
-				} catch (error) {
-					Logger.error(`Error cleaning up ${module.name}: ${error}`);
-				}
-			}
-		}
-	}
-
-	protected _registerCoreDependencies() {
-		const eventBus = createEventBus();
-		AppRegistry.rootContainer.singleton("db", () => db);
-		AppRegistry.rootContainer.singleton(EventBusKey, () => eventBus);
-	}
-
-	protected _initModules() {
-		this._modules.forEach((ModuleClass) => {
-			const instance = new ModuleClass(AppRegistry.rootContainer.createChild());
-			instance.register();
-			AppRegistry.setModule(instance.name, instance);
-		});
 	}
 }
 

@@ -5,9 +5,7 @@ import { HealthService } from "./health";
 export class SystemModule extends Module {
 	readonly name = "system";
 
-	register(): void {}
-
-	bootstrap(): Hono {
+	start(): Hono {
 		const app = new Hono();
 
 		app.get("/health", async (c) => {
