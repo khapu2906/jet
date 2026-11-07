@@ -102,7 +102,8 @@ this._container.singleton(RateLimitRegistryKey, () => new RateLimitRegistry());
 ```
 
 Any module resolves it the same way it resolves `DbKey`/`EventBusKey`, and calls `register()`
-**during its own `register()`** (i.e. before the server starts accepting traffic):
+**during its own `onInit()`** (i.e. before the server starts accepting traffic). Not in the
+module's `register()`: that one is pure wiring and also runs for modules that are only imported.
 
 ```ts
 const rateLimitRegistry = this._container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
@@ -129,7 +130,7 @@ already supports returning a `Promise`, this codebase's just doesn't use one yet
 the *first* request to hit each new prefix pays a construction cost the rest don't. The fix
 splits the lifecycle into three explicit phases:
 
-1. `register(prefix, override)` — called by modules during their own `register()`. Throws if
+1. `register(prefix, override)` — called by modules during their own `onInit()`. Throws if
    called after `build()`, since that would mean a request already arrived before this module's
    overrides existed.
 2. `build(defaults)` — called exactly once, in `HttpProcess._setupMiddleware()`, **after**

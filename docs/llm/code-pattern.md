@@ -170,7 +170,7 @@ name, matching every other cross-cutting service:
 // src/processes/http.ts — _registerCoreDependencies()
 this._container.singleton(RateLimitRegistryKey, () => new RateLimitRegistry());
 
-// src/modules/auth/module.ts — register()
+// src/modules/auth/module.ts — onInit() (side effect; register() is pure wiring)
 const rateLimitRegistry = this._container.resolve<RateLimitRegistry>(RateLimitRegistryKey);
 rateLimitRegistry.register("/auth/login", { limit: 10, windowMs: 60_000 });
 ```

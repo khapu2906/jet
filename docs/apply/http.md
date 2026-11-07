@@ -15,7 +15,8 @@ For the bootstrap sequence and graceful shutdown internals, see `docs/deeper/htt
 
 Health check routes (`/health`, `/health/live`, `/health/ready`) are registered by `SystemModule` — see `docs/apply/modules.md`.
 
-`_modules` currently includes `SystemModule` and `AuthModule`. Add more by extending this array — see `docs/apply/modules.md`.
+`_modules` currently includes `SystemModule`, `AuthModule`, and `UserModule`. Add more by
+extending this array — see `docs/apply/modules.md`.
 
 ## Configuration
 

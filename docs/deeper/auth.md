@@ -66,12 +66,13 @@ afterward. A new provider implementing `ITokenIssuer` too would mean it can also
 this app trusts — almost never what you want; keep that half exclusively `InternalAuthProvider`'s
 job unless a provider is deliberately replacing this app's own session tokens entirely.
 
-**Why `AuthProviderKey` sometimes binds at the process root instead of inside `AuthModule`**:
+**Why `AuthProviderKey` sometimes binds at the process container instead of inside `AuthModule`**:
 DI visibility. A binding made in `AuthModule.register()` only exists in `auth`'s own child
 container — another module can still reach it via `imports` + `share(to)`, but that's extra
 ceremony for something meant to be used by *every* route across the app that needs
 authentication. Binding it in `HttpProcess._registerCoreDependencies()` instead puts it in the
-root container everything already inherits from, the same tier as `DbKey`/`EventBusKey` — this
+process container that every module's child container inherits from, the same tier as
+`DbKey`/`EventBusKey` — this
 matches the actual precedent in the sibling codebase this pattern was verified against: its
 main user-facing provider is root-bound, while a *second*, narrower provider (service-to-service
 auth, below) is bound inside the auth module specifically, since only a couple of routes need it.

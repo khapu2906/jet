@@ -45,9 +45,9 @@ Two layers enforce boundaries and they complement each other: ArchSafe stops the
 import of anything but `contracts/index.ts`; `share(to)` stops the *runtime* `resolve()` of
 anything not explicitly bound into `to`.
 
-A stateful exporter (in-memory cache, pool) should be bound once in the process root
+A stateful exporter (in-memory cache, pool) should be bound once in the process container
 (`_registerCoreDependencies()`), like `DbKey`/`EventBusKey`, not shared via `share(to)` — that
-way every importer resolves the same root singleton. `share(to)` gives each importer its own
+way every importer resolves the same singleton through the parent chain. `share(to)` gives each importer its own
 instance, which is fine for stateless services. Not covered: restricting individual methods
 of a shared service; the unit of scope is the service key.
 
@@ -71,7 +71,7 @@ first used (`lazy`).
 
 **Resolution order**: `resolve(key)` searches the current container first, then walks up
 `parent` containers (this is what makes a module's child container able to resolve
-root-container singletons like `DbKey`/`EventBusKey` without rebinding them). It also detects
+process-container singletons like `DbKey`/`EventBusKey` without rebinding them). It also detects
 circular dependencies via an internal resolution stack and throws rather than infinite-looping
 or silently returning `undefined`.
 

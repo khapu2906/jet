@@ -78,18 +78,20 @@ export class MyModule extends Module {
 
 ## Registering a Module
 
-Add it to the process:
+Add the **class** to the process's `_modules` — the loader constructs it with its own child
+container, so never pass an instance:
 
 ```ts
-// src/processes/main.ts
-protected get _modules() {
-  return [
-    new SystemModule(),
-    new AuthModule(),
-    new MyModule(),   // ← add here
-  ]
-}
+// src/processes/http.ts
+protected _modules: ModuleConstructor[] = [
+  SystemModule,
+  AuthModule,
+  MyModule,   // ← add here
+]
 ```
+
+Only modules listed here are activated (`onInit()` + `start()`). Modules reached through
+`imports` are loaded and wired, but not activated.
 
 ## Accessing Services Across Modules
 
@@ -119,9 +121,10 @@ readonly imports = [OtherModule]
   is cheap and cannot crash on a process-specific dependency.
 - Depend on the other module's `contracts/index.ts` only (ArchSafe enforces this).
 
-**Deprecated:** `getImportModules()` and `AppRegistry.getModule()`. They still exist for
-old callers. Migrate: `getImportModules()` -> `imports`; move your public bindings out of
-`register()` into `share(to)`.
+**Removed in 0.3.0:** `getImportModules()` — use the `imports` field instead, and move public
+bindings out of `register()` into `share(to)`. `AppRegistry.getModule()`/`getContainer()` are
+deprecated: bind shared singletons once in the process's `_registerCoreDependencies()` and
+resolve them from the container instead.
 
 ## Built-in Modules
 

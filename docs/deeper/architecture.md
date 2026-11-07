@@ -47,11 +47,19 @@ The system uses the `treasure-chest` DI container. Services are registered using
 container.bind(AuthServiceKey).to(AuthService)
 ```
 
-Each module has its own child container inheriting from the root container, enabling:
+Container tiers, outer → inner:
 
-* Shared global services (DB, logger, event bus)
+* **root** — `AppRegistry.rootContainer`; the shared parent. Holds nothing by default.
+* **process** — one child per process (`BaseProcess._container`); core singletons (`DbKey`,
+  `EventBusKey`, `SchedulerKey`, …) bind here, so `PROCESS_TYPE=*` processes don't clobber
+  each other.
+* **module** — one child per module; `register()` bindings live here, private to that module.
+
+This gives:
+
+* Shared core services resolved by any module via the parent chain
 * Isolated module boundaries
-* Cross-module resolution when needed
+* Cross-module resolution only through `imports` + `share(to)`
 
 ## Request Flow (API Process)
 

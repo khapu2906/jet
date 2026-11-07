@@ -39,7 +39,8 @@ import { Module } from "@shared/base/modules";
 export class WelcomeEmailModule extends Module {
   readonly name = "welcome-email";
 
-  register(): void {
+  // Subscriptions are side effects: set them up in onInit(), not register().
+  async onInit(): Promise<void> {
     const eventBus = this._container.resolve<EventBus>(EventBusKey);
 
     eventBus.subscribe({
@@ -51,8 +52,6 @@ export class WelcomeEmailModule extends Module {
       },
     });
   }
-
-  start(): void {}
 }
 ```
 

@@ -33,8 +33,15 @@ the interface, matching every other cross-cutting service in this codebase).
 export class DemoSchedulerModule extends Module {
   readonly name = "demo-scheduler";
 
+  // Pure wiring: bind the job. No side effects here.
   register(): void {
+    this._container.singleton(DemoJobKey, () => new DemoJob());
+  }
+
+  // Side effects run here, only when this module is listed in the process's _modules.
+  async onInit(): Promise<void> {
     const scheduler = this._container.resolve<ISchedulerManager>(SchedulerKey);
+    const demoJob = this._container.resolve<IDemoJob>(DemoJobKey);
 
     scheduler.register({
       name: "demo-say-hello-every-minute",
@@ -42,8 +49,6 @@ export class DemoSchedulerModule extends Module {
       handler: () => demoJob.sayHello(),
     });
   }
-
-  start(): void {}
 }
 ```
 

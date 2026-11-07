@@ -76,7 +76,7 @@ Uses `hono-rate-limiter` with draft-6 rate limit response headers.
 | `POST /auth/register` | 5 | 60s | Unauthenticated — no user identity to key by yet |
 | `POST /auth/login` | 10 | 60s | Unauthenticated — also has its own 5-failed-attempt lockout, see `docs/apply/auth.md` |
 
-Registered by `AuthModule.register()` via a container-resolved `RateLimitRegistry`
+Registered by `AuthModule.onInit()` via a container-resolved `RateLimitRegistry`
 (`RateLimitRegistryKey`) — see `docs/deeper/middleware.md` for how to add more.
 
 ## Error Handler
