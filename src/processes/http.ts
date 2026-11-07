@@ -2,15 +2,17 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { db, DbKey } from "@shared/db";
 import { createOpenAPISpec, swaggerUIRoute } from "@/shared/doc/openapi";
-import { Module, type ModuleConstructor } from "@/shared/base/modules";
+import type { Module, ModuleConstructor } from "@/shared/base/modules";
+
 import { BaseProcess, Runner } from "@/shared/base/processes";
 import type { ServerType } from "@hono/node-server";
 import { Logger, LoggerUI } from "@shared/logger";
-import { AppRegistry } from "@shared/registry";
+
 import { requestId } from "hono/request-id";
 
 import { AuthModule } from "@/modules/auth/module";
 import { SystemModule } from "@/modules/system/module";
+import { UserModule } from "@/modules/user/module";
 
 import {
 	createRateLimitMiddleware,
@@ -32,11 +34,16 @@ import { LocalStorage, StorageKey } from "@/shared/storage";
  * Application bootstrapper
  */
 class HttpProcess extends BaseProcess<Hono> {
-	protected _modules: ModuleConstructor[] = [SystemModule, AuthModule];
+	protected _modules: ModuleConstructor[] = [
+		SystemModule,
+		AuthModule,
+		UserModule,
+	];
 
-	private readonly _moduleInstances = AppRegistry.importModuleInstances;
 
-	private readonly _moduleOrder: Module[] = [];
+	// Only the modules listed in _modules mount routes; modules that are
+	// merely imported by them are loaded but not bootstrapped.
+	private _moduleOrder: Module[] = [];
 
 	async bootstrap(): Promise<Hono> {
 		this._app = new Hono();
@@ -61,16 +68,9 @@ class HttpProcess extends BaseProcess<Hono> {
 			Logger.error(`Error stopping EventBus: ${error}`);
 		}
 
-		const reverse = [...this._moduleOrder].reverse();
-
-		for (const module of reverse) {
-			try {
-				await module.cleanup();
-				await module.getContainer()?.dispose?.();
-			} catch (err) {
-				Logger.error(`Module cleanup error (${module.name}): ${err}`);
-			}
-		}
+		await this._loader.cleanup((module, err) =>
+			Logger.error(`Module cleanup error (${module.name}): ${err}`),
+		);
 
 		await this._container.dispose();
 	}
@@ -89,15 +89,8 @@ class HttpProcess extends BaseProcess<Hono> {
 	}
 
 	protected async _initModules() {
-		for (const ModuleClass of this._modules) {
-			const childContainer = this._container.createChild();
-			const instance = new ModuleClass(childContainer);
-
-			this._moduleInstances.set(instance.name, instance);
-			this._moduleOrder.push(instance);
-
-			await instance.__init();
-		}
+		this._moduleOrder = await super._initModules();
+		return this._moduleOrder;
 	}
 
 	private async _startInfrastructure() {

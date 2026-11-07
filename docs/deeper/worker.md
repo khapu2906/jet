@@ -108,5 +108,5 @@ On `SIGTERM`/`SIGINT`:
 
 ```
 1. eventBus.stop()
-2. module.cleanup()   → for each module, in reverse registration order
+2. ModuleLoader.cleanup() → each module's onDestroy() + container.dispose(), in reverse load order
 ```

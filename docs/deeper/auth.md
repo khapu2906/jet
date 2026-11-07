@@ -68,7 +68,7 @@ job unless a provider is deliberately replacing this app's own session tokens en
 
 **Why `AuthProviderKey` sometimes binds at the process root instead of inside `AuthModule`**:
 DI visibility. A binding made in `AuthModule.register()` only exists in `auth`'s own child
-container — another module can still reach it via `getImportModules()`, but that's extra
+container — another module can still reach it via `imports` + `share(to)`, but that's extra
 ceremony for something meant to be used by *every* route across the app that needs
 authentication. Binding it in `HttpProcess._registerCoreDependencies()` instead puts it in the
 root container everything already inherits from, the same tier as `DbKey`/`EventBusKey` — this

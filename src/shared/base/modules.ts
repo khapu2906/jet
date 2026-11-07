@@ -1,115 +1,51 @@
 import type { Hono } from "hono";
 import { Container } from "@khapu2906/treasure-chest";
 
-export type ModuleConstructor = new (baseContainer?: Container) => Module;
+export type ModuleConstructor = new (container: Container) => Module;
 
 export abstract class Module {
 	abstract readonly name: string;
 
-	protected container!: Container;
+	/** Modules this one depends on (classes). Loaded before this module. */
+	readonly imports: ModuleConstructor[] = [];
 
-	public readonly importModuleInstances = new Map<string, Module>();
+	protected container: Container;
 
-	private _initialized = false;
-	private _destroyed = false;
-
-	constructor(baseContainer?: Container) {
-		this._setupContainer(baseContainer);
-	}
-
-	protected getImportModules(): ModuleConstructor[] {
-		return [];
+	constructor(container: Container) {
+		this.container = container;
 	}
 
 	/**
-	 * Register dependencies
+	 * Private wiring: bind what THIS module needs into its own container.
+	 * Pure bindings only — no side effects (put those in onInit()).
 	 */
-	abstract register(): void | Promise<void>;
+	register(): void | Promise<void> {}
 
 	/**
-	 * Share bindings
+	 * Public surface: bind the keys another module may consume into `to`
+	 * (the importer's container). Resolve private deps from `this.container`.
 	 */
-	public share(): void | Promise<void> {}
+	share(_to: Container): void | Promise<void> {}
 
 	/**
-	 * Optional lifecycle hook
+	 * Side effects. Runs only for modules listed in a process's `_modules`,
+	 * never for modules that are merely imported.
 	 */
-	public async onInit(): Promise<void> {}
+	async onInit(): Promise<void> {}
 
 	/**
-	 * Setup routes
+	 * Mount routes / start consumers. Runs only for `_modules` entries.
 	 */
-	abstract bootstrap(): Hono | void | Promise<Hono | void>;
-
-	/**
-	 * Optional lifecycle hook
-	 */
-	public async onDestroy(): Promise<void> {}
-
-	/**
-	 * Internal init guard
-	 */
-	async __init() {
-		if (this._initialized) return;
-
-		// init imports first
-		for (const [, mod] of this.importModuleInstances) {
-			await mod.__init();
-		}
-
-		await this.register();
-
-		await this.onInit();
-
-		this._initialized = true;
+	bootstrap(): Hono | void | Promise<Hono | void> {
+		return undefined;
 	}
 
 	/**
-	 * Cleanup resources
+	 * Cleanup for modules that were activated (see onInit()).
 	 */
-	async cleanup(): Promise<void> {
-		if (this._destroyed) return;
-
-		// destroy imports first (reverse order safer)
-		const imports = Array.from(this.importModuleInstances.values()).reverse();
-
-		for (const mod of imports) {
-			await mod.cleanup();
-		}
-
-		await this.onDestroy();
-
-		await this.container.dispose();
-
-		this._destroyed = true;
-	}
-
-	getInfo() {
-		return {
-			name: this.name,
-			hasRegister: this.register !== Module.prototype.register,
-			hasShare: this.share !== Module.prototype.share,
-			hasBootstrap: this.bootstrap !== Module.prototype.bootstrap,
-			importedModules: Array.from(this.importModuleInstances.keys()),
-		};
-	}
+	async onDestroy(): Promise<void> {}
 
 	getContainer() {
 		return this.container;
-	}
-
-	private _setupContainer(baseContainer?: Container) {
-		const myContainer = baseContainer || new Container();
-		this.container = myContainer;
-
-		const modulesToImport = this.getImportModules();
-
-		for (const ModuleClass of modulesToImport) {
-			const instance = new ModuleClass(this.container);
-
-			instance.share();
-
-			this.importModuleInstances.set(instance.name, instance);
-		}
 	}
 }

@@ -53,7 +53,7 @@ version of this list (also what's synced into `CLAUDE.md`). Summarized:
 | Config domains (`shared/config/*.ts`) never depend on each other | Each depends only on `env.ts` |
 | No feature module depends back on `shared/` or `processes/` | Dependency direction is one-way |
 | `I*Repository`/`I*Service` interfaces must live in `contracts/repository.ts`/`contracts/service.ts` | Catches the interface ending up in the wrong file, anywhere in the repo |
-| Cross-module access — allowed, not forbidden | A module *can* depend on another's `contracts/index.ts` (e.g. via `getImportModules()`) and, transitively, whatever that barrel re-exports — nothing else in that module is reachable |
+| Cross-module access — allowed, not forbidden | A module *can* depend on another's `contracts/index.ts` (via `imports`, and only keys the other module binds into `to` via `share(to)`) and, transitively, whatever that barrel re-exports — nothing else in that module is reachable |
 
 For why each of these exists (including two bypasses that were found and fixed during
 development, and what the tool still *can't* catch), see `docs/deeper/archsafe.md`.

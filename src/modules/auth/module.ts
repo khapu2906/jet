@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { Container } from "@khapu2906/treasure-chest";
 import { Module } from "@shared/base/modules";
 import { AuthRepository } from "./repository";
 import { AuthRepositoryKey } from "./contracts/repository";
@@ -13,21 +14,24 @@ export class AuthModule extends Module {
 	readonly name = "auth";
 
 	register(): void {
+		// Private: only auth's own container sees these.
 		this.container.bind(TokenIssuerKey, () => new InternalAuthProvider());
-
-		this.container.bind(AuthRepositoryKey, (c) => {
-			return new AuthRepository(c.resolve(DbKey));
-		});
-
-		this.container.bind(
-			AuthServiceKey,
-			(c) =>
-				new AuthService(
-					c.resolve(AuthRepositoryKey),
-					c.resolve(TokenIssuerKey),
-				),
+		this.container.bind(AuthRepositoryKey, (c) =>
+			new AuthRepository(c.resolve(DbKey)),
 		);
+	}
 
+	share(to: Container): void {
+		// Public: whatever module imports auth gets AuthServiceKey.
+		to.bind(AuthServiceKey, () =>
+			new AuthService(
+				this.container.resolve(AuthRepositoryKey),
+				this.container.resolve(TokenIssuerKey),
+			),
+		);
+	}
+
+	async onInit(): Promise<void> {
 		// Registration/login are unauthenticated by nature (no user identity to
 		// key a rate limit by yet), so they get a tighter, IP-keyed limit than
 		// the app-wide default — otherwise a script can spam account creation

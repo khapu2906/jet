@@ -1,6 +1,7 @@
 import { Container } from "@khapu2906/treasure-chest";
 import { AppRegistry } from "@shared/registry";
-import type { ModuleConstructor } from "./modules";
+import type { Module, ModuleConstructor } from "./modules";
+import { ModuleLoader } from "./module-loader";
 
 export abstract class BaseProcess<T = void> {
 	protected _app!: T;
@@ -8,6 +9,10 @@ export abstract class BaseProcess<T = void> {
 	protected _modules: ModuleConstructor[] = [];
 
 	protected readonly _container: Container = AppRegistry.rootContainer;
+
+	protected readonly _loader = new ModuleLoader(this._container, (m) =>
+		AppRegistry.setModule(m.name, m),
+	);
 
 	/**
 	 * Bootstrap the application
@@ -25,9 +30,11 @@ export abstract class BaseProcess<T = void> {
 	protected abstract _registerCoreDependencies(): void;
 
 	/**
-	 * Initialize all modules
+	 * Initialize all modules (and the modules they import)
 	 */
-	protected abstract _initModules(): void | Promise<void>;
+	protected _initModules(): Promise<Module[]> {
+		return this._loader.load(this._modules);
+	}
 }
 
 export class Runner {

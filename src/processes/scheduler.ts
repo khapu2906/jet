@@ -1,5 +1,6 @@
 import { BaseProcess, Runner } from "@/shared/base/processes";
 import type { ModuleConstructor } from "@/shared/base/modules";
+
 import { Logger, LoggerUI } from "@shared/logger";
 import { AppRegistry } from "@shared/registry";
 import { createEventBus, EventBus, EventBusKey } from "@/shared/event-manager";
@@ -10,9 +11,10 @@ import { DemoSchedulerModule } from "@/modules/demo-scheduler/module";
 class SchedulerProcess extends BaseProcess<void> {
 	protected _modules: ModuleConstructor[] = [DemoSchedulerModule];
 
+
 	async bootstrap(): Promise<void> {
 		this._registerCoreDependencies();
-		this._initModules();
+		await this._initModules();
 
 		const eventBus: EventBus = this._container.resolve(EventBusKey);
 		await eventBus.start();
@@ -40,19 +42,9 @@ class SchedulerProcess extends BaseProcess<void> {
 			Logger.error(`Error stopping Scheduler: ${error}`);
 		}
 
-		const moduleInstances = Array.from(
-			AppRegistry.importModuleInstances.values(),
-		).reverse();
-
-		for (const module of moduleInstances) {
-			if (module.cleanup) {
-				try {
-					await module.cleanup();
-				} catch (error) {
-					Logger.error(`Error cleaning up ${module.name}: ${error}`);
-				}
-			}
-		}
+		await this._loader.cleanup((module, error) =>
+			Logger.error(`Error cleaning up ${module.name}: ${error}`),
+		);
 	}
 
 	protected _registerCoreDependencies() {
@@ -62,13 +54,6 @@ class SchedulerProcess extends BaseProcess<void> {
 		this._container.singleton(EventBusKey, () => eventBus);
 	}
 
-	protected _initModules() {
-		this._modules.forEach((ModuleClass) => {
-			const instance = new ModuleClass(AppRegistry.rootContainer.createChild());
-			instance.register();
-			AppRegistry.setModule(instance.name, instance);
-		});
-	}
 }
 
 export const runner = new Runner(async () => {

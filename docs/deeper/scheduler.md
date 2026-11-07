@@ -58,7 +58,7 @@ On `SIGTERM`/`SIGINT`:
                          currently executing to finish, then cancels all
                          scheduled triggers
 2. eventBus.stop()
-3. module.cleanup()   → for each module, in reverse registration order
+3. ModuleLoader.cleanup() → each module's onDestroy() + container.dispose(), in reverse load order
 ```
 
 Waiting for the in-flight job to finish (rather than cancelling it outright) matters because

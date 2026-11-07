@@ -5,41 +5,49 @@ For the practical how-to (creating/registering a module, built-in routes), see `
 ## Module Lifecycle
 
 ```
-share()      → (when imported by another module, or called by your own register()) bind this
-               module's exposed services into the shared container
-register()   → bind this module's own dependencies to the container
-onInit()     → post-registration hook
-bootstrap()  → mount routes / start consumers
-onDestroy()  → cleanup on SIGTERM/SIGINT
+register()   → bind this module's private deps into its own container
+share(to)    → bind this module's public surface into the importer's container
+onInit()     → side effects (activated modules only)
+bootstrap()  → mount routes / start consumers (activated modules only)
+onDestroy()  → cleanup on SIGTERM/SIGINT (activated modules only)
 ```
 
-`getImportModules()` runs earliest of all — at construction time (`Module`'s constructor calls
-`_setupContainer()`, which instantiates every imported module and calls its `share()`
-immediately) — so imported modules' bindings are already available in the container before
-`register()`/`onInit()` run on the importing module.
+Loading is done by `ModuleLoader` (`src/shared/base/module-loader.ts`), shared by the http,
+worker and scheduler processes. It walks `imports` depth-first, gives every module its **own
+child container** of the process root, and orders loading so imports come first. For each
+import it calls the dependency's `share(to)` with the importer's container:
 
-The public API a process calls is actually `__init()` (register → onInit, recursing into
-imports first) and `cleanup()` (onDestroy, recursing into imports in reverse, then
-`container.dispose()`) — `register()`/`onInit()`/`onDestroy()` are the hooks you override,
-`__init()`/`cleanup()` are the orchestration around them and are idempotent (guarded by
-internal `_initialized`/`_destroyed` flags), so calling `cleanup()` twice is safe.
+```ts
+dep.share(importer.container)   // dep chooses what it exposes; everything else stays private
+```
 
-## Accessing Services Across Modules — why prefer `getImportModules()`
+So scope is real, not convention: whatever the dependency does not bind into `to` never
+reaches the importer, and the lifecycle (`singleton`/`bind`) of the shared service is decided
+inside `share(to)`, i.e. by the importer's container. Cleanup runs in reverse order and one
+module failing does not stop the rest.
 
-`getImportModules()` works even when `OtherModule` is *also* independently registered as its
-own top-level module elsewhere (mounting its own routes) — you get your own **private
-instance** of its service. This is safe as long as that service is stateless (e.g. it wraps a
-repository backed by a root-container singleton `Database`, not in-memory state) — two
-instances backed by the same DB connection behave identically to callers. This is the
-convention used throughout the codebase.
+The loader calls `register()` + `share()` on every loaded module, then `onInit()` on the
+activated roots. `bootstrap()` is called by the process (http mounts the returned Hono app),
+and `onDestroy()` + `container.dispose()` by `ModuleLoader.cleanup()`.
 
-The escape hatch, `AppRegistry.getModule()`, instead retrieves the *exact same* instance of an
-already-initialized top-level module — only needed if the target service is genuinely
-stateful and callers must share one instance (e.g. an in-memory cache or connection pool that
-would duplicate resources if instantiated twice). Its ordering requirement (`OtherModule` must
-appear earlier in `_modules[]`) is the main reason `getImportModules()` is preferred by
-default — it has no such ordering constraint, since the DI container resolves it eagerly at
-construction time regardless of array order.
+## Accessing Services Across Modules — `imports` + `share(to)`
+
+Why this shape: the original `getImportModules()` + `share()` passed the importer's container
+straight into the dependency, so a dependency's `register()` bindings leaked into the importer
+and side effects ran once per copy. The first rewrite (`exports` + bridging) fixed the leak
+but moved ownership to the exporter, so a shared service no longer belonged to the importer.
+`share(to)` keeps the old ownership model and the new boundary: `register()` is private,
+`share(to)` is the public surface, and instances written into `to` belong to the importer.
+
+Two layers enforce boundaries and they complement each other: ArchSafe stops the *static*
+import of anything but `contracts/index.ts`; `share(to)` stops the *runtime* `resolve()` of
+anything not explicitly bound into `to`.
+
+A stateful exporter (in-memory cache, pool) should be bound once in the process root
+(`_registerCoreDependencies()`), like `DbKey`/`EventBusKey`, not shared via `share(to)` — that
+way every importer resolves the same root singleton. `share(to)` gives each importer its own
+instance, which is fine for stateless services. Not covered: restricting individual methods
+of a shared service; the unit of scope is the service key.
 
 ## The DI container underneath: `@khapu2906/treasure-chest`
 

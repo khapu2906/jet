@@ -25,7 +25,7 @@ modules/<name>/
 ├── service.ts     # Business logic — implements IXService, throws AppError subclasses, does NOT touch SQL
 ├── routes.ts      # Hono routes — calls the service, contains NO business logic
 ├── doc.ts         # OpenAPI description object (tag, request, response schema) for hono-openapi
-└── module.ts      # Wiring: register() binds DI, bootstrap() mounts routes, getImportModules() declares dependencies on other modules
+└── module.ts      # Wiring: register() binds DI, bootstrap() mounts routes, `imports` + `share(to)` declare dependencies on and exposure to other modules
 ```
 
 **Why the interface is a separate file from its implementation** (`contracts/repository.ts` vs.

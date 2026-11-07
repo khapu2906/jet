@@ -1,5 +1,5 @@
 // The module's cross-module public surface — what another module is
-// allowed to depend on via getImportModules() + AuthModule.share() (see
+// allowed to depend on via `imports` + AuthModule.share(to) (see
 // docs/deeper/modules.md). Add a new re-export here to make a contract
 // public; archsafe.config.mts does not need to change (it only declares
 // this file itself as public — ArchSafe resolves everything re-exported

@@ -35,40 +35,44 @@ another module already defines.
 ## Creating a Module
 
 ```ts
-import { Module, type ModuleConstructor } from "@shared/base/modules"
+import { Hono } from "hono"
+import type { Container } from "@khapu2906/treasure-chest"
+import { Module } from "@shared/base/modules"
 
 export class MyModule extends Module {
-  // Declare dependencies on other modules — pass the CLASS, not an instance
-  // (the base Module class instantiates it for you, sharing your container)
-  protected getImportModules(): ModuleConstructor[] {
-    return [OtherModule]
-  }
+  readonly name = "my"
 
-  // Bind services this module exposes to other modules (via getImportModules())
-  // — called automatically when another module imports this one, and by your
-  // own register() below when this module is bootstrapped as a top-level module.
-  override share(): void {
-    this.container.bind(MyServiceKey, (c) => new MyService(c.resolve(OtherServiceKey)))
-  }
+  // Modules you depend on — pass the CLASS. Loaded before this module,
+  // whatever order _modules[] is in.
+  readonly imports = [OtherModule]
 
-  // Bind the rest of this module's own dependencies to the DI container
+  // Private: what THIS module needs. Bind into your own container only.
   register(): void {
-    this.share()
+    this.container.bind(MyRepositoryKey, (c) => new MyRepository(c.resolve(DbKey)))
   }
 
-  // Mount routes, return Hono app
+  // Public: what modules importing you may resolve. Bind into `to` — the
+  // importer's container — so the instance belongs to the importer.
+  share(to: Container): void {
+    to.bind(MyServiceKey, () => new MyService(
+      this.container.resolve(MyRepositoryKey),   // private dep, from your own container
+      to.resolve(OtherServiceKey),               // dep from a module you import
+    ))
+  }
+
+  // Side effects. Runs only when this module is listed in _modules[],
+  // never when another module merely imports it.
+  async onInit(): Promise<void> {}
+
+  // Mount routes, return Hono app. Runs only for _modules[] entries.
   bootstrap() {
     const app = new Hono()
-    const service = this.container.resolve(MyServiceKey)
-
-    app.get("/my-route", (c) => c.json({ ok: true }))
+    app.route("/my", createMyRoutes(this.container))
     return app
   }
 
-  // Cleanup on shutdown
-  async onDestroy() {
-    // close connections, etc.
-  }
+  // Cleanup on shutdown (activated modules only)
+  async onDestroy() {}
 }
 ```
 
@@ -89,30 +93,35 @@ protected get _modules() {
 
 ## Accessing Services Across Modules
 
-**Preferred: declare the dependency in `getImportModules()`.**
+Two methods, one rule: **`register()` is private, `share(to)` is public.** A module
+sees another module's service only if it imports it and the other module binds that
+key into its `to` in `share(to)`.
 
 ```ts
-protected getImportModules(): ModuleConstructor[] {
-  return [OtherModule]
+// other/module.ts
+share(to: Container): void {
+  to.bind(OtherServiceKey, () => new OtherService(/* private deps from this.container */))
 }
-// ...then anywhere after: this.container.resolve<IOtherService>(OtherServiceKey)
+
+// my/module.ts
+readonly imports = [OtherModule]
+// ...then in register()/bootstrap(): this.container.resolve<IOtherService>(OtherServiceKey)
 ```
 
-**Escape hatch: `AppRegistry.getModule()`.** Retrieves the *exact same* instance of an
-already-initialized top-level module (not a new copy) — only needed if the target service is
-genuinely stateful and callers must share one instance:
+- The importer owns the service: `share(to)` writes into the importer's container,
+  and its `singleton`/`bind` lifecycle is decided there.
+- A key not put into `to` never reaches the importer — private is enforced at runtime,
+  not just by ArchSafe.
+- An import cycle fails at startup with the full path, e.g. `a -> b -> a`.
+- Importing a module does not activate it: `onInit()` and `bootstrap()` run only for
+  modules listed in the process's `_modules[]`.
+- `register()` is pure wiring; put side effects in `onInit()` so importing a module
+  is cheap and cannot crash on a process-specific dependency.
+- Depend on the other module's `contracts/index.ts` only (ArchSafe enforces this).
 
-```ts
-import { AppRegistry } from "@shared/registry"
-
-const otherModule = AppRegistry.getModule("other") // module.name, not the class
-if (!otherModule) throw new Error("OtherModule must be registered before this module in _modules[]")
-const otherService = otherModule.getContainer().resolve<IOtherService>(OtherServiceKey)
-```
-
-Note this only works if `OtherModule` is listed **before** the calling module in the process's
-`_modules[]` array — `getImportModules()` has no such ordering requirement, which is the main
-reason to prefer it. See `docs/deeper/modules.md` for why.
+**Deprecated:** `getImportModules()` and `AppRegistry.getModule()`. They still exist for
+old callers. Migrate: `getImportModules()` -> `imports`; move your public bindings out of
+`register()` into `share(to)`.
 
 ## Built-in Modules
 

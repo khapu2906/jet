@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 prior to 0.1.11 predate this file and aren't documented in detail here — see `git log` for
 that history.
 
+## [Unreleased]
+
+### Changed
+- Module wiring split into `register()` (private deps, own container) and `share(to)` (public
+  surface, written into the importer's container). The shared service's lifecycle is now decided
+  by the importer's container, and instances written into `to` belong to the importer — not to
+  the exporter.
+- `ModuleLoader` (`src/shared/base/module-loader.ts`) now loads every module into its own child
+  container, orders imports before the importing module, and calls a dependency's `share(to)`
+  with the importer's container. `onInit()`/`bootstrap()` run only for modules listed in a
+  process's `_modules[]`, never for modules that are merely imported; `onDestroy()` +
+  `container.dispose()` run on cleanup in reverse load order.
+- `register()` is now pure wiring. Side effects moved to `onInit()` so importing a module is
+  cheap and cannot crash on a process-specific dependency:
+  - `AuthModule`: rate-limit registration moved to `onInit()`; `AuthServiceKey` is bound in
+    `share(to)` while the repository and token issuer stay private in `register()`.
+  - `DemoSchedulerModule`: job is bound in `register()`; cron registration moved to `onInit()`.
+- `BaseProcess` now owns the shared `ModuleLoader` and `_initModules()` (returns the activated
+  root modules). `http`/`worker`/`scheduler` no longer hand-roll module init; `http` still
+  overrides `_initModules()` only to keep the list of modules that mount routes.
+
+### Deprecated
+- `Module.getImportModules()` — use the `imports` field (`imports: ModuleConstructor[]`).
+- `AppRegistry.getModule()` / `AppRegistry.getContainer()` — bind stateful singletons once in
+  `_registerCoreDependencies()` and resolve them from the root container instead.
+
 ## [0.2.1] - 2026-08-21
 
 ### Added

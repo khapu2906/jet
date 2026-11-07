@@ -60,7 +60,7 @@ for (const name of FEATURE_MODULES) {
         // the moment .public(...) is declared — no separate forbid rules
         // needed for cross-module access. module.ts is how a *process*
         // mounts the module; contracts/service.ts is how *another module*
-        // is meant to depend on it (via getImportModules() + share(), see
+        // is meant to depend on it (via `imports` + `share(to)`, see
         // docs/deeper/modules.md) — repository.ts/contracts/repository.ts/
         // service.ts/routes.ts are never public, on purpose: no module may
         // reach another module's data layer or concrete service class,
@@ -179,7 +179,7 @@ const rules = [
   // repository.ts/contracts/repository.ts is a violation with no rule needed
   // here. What IS allowed (deliberately, not by omission): one module
   // depending on another's contracts/index.ts (or, transitively, whatever
-  // it re-exports, e.g. contracts/service.ts) via getImportModules(), for
+  // it re-exports, e.g. contracts/service.ts) via `imports`, for
   // a case like a future `user` module needing auth's IAuthService. No
   // module currently does this — event-driven (@shared/event-manager) is
   // still the default choice for anything that doesn't need a synchronous

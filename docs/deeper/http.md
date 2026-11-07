@@ -26,9 +26,9 @@ On `SIGTERM`/`SIGINT`, the process stops in two phases so an in-flight request i
                                   the full grace period for fast requests)
 3. after 3s (grace period)     → any connection still open is force-closed via
                                   closeAllConnections()
-4. proc.cleanup()              → eventBus.stop(), then each module's cleanup()
-                                  in reverse registration order, then
-                                  container.dispose()
+4. proc.cleanup()              → eventBus.stop(), then ModuleLoader.cleanup()
+                                  → each module's onDestroy() + container.dispose(),
+                                  in reverse load order
 ```
 
 The 3s grace period matters because Node's `server.close()` alone waits for **every** socket

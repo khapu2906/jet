@@ -34,7 +34,7 @@ class AuthModule extends Module {
 }
 ```
 
-Modules declare dependencies via `getImportModules()`. The framework resolves them automatically using a hierarchical container model (parent → child containers). See `docs/deeper/modules.md` for the full lifecycle and cross-module access model, and `docs/deeper/archsafe.md` for how the module boundaries this section describes are actually enforced (not just documented).
+Modules declare dependencies via `imports` and expose services via `share(to)`. `ModuleLoader` loads each module into its own child container and copies only the keys bound into the importer's `to`. See `docs/deeper/modules.md` for the full lifecycle and cross-module access model, and `docs/deeper/archsafe.md` for how the module boundaries this section describes are actually enforced (not just documented).
 
 ## Dependency Injection
 
